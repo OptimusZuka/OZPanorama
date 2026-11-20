@@ -1,0 +1,6 @@
+{
+  "tripleDistance": 710,
+  "tripleWidth": 593,
+  "tripleBezel": 12,
+  "tripleAngle": 56
+}

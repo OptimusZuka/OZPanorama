@@ -1,0 +1,6 @@
+NumMonitors=3
+MonitorType=0
+RenderViewPerMonitor=1
+MonitorWidth=608
+ScreenWidth=608
+ScreenAngles=56
