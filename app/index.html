@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="ozp-token" content="__OZP_TOKEN__">
+<title>OZPanorama · Zuka Force</title>
+<style>
+  /* Zuka Force: preto, amarelo e branco (mesma paleta do FS25 RealFFB). Tema único, escuro. */
+  :root {
+    color-scheme: dark;
+    --bg: #0b0b0c; --side: #111113; --panel: #151517; --card: #18181b; --line: #26262a; --line2: #3f3f46;
+    --ink: #f4f4f5; --soft: #d4d4d8; --muted: #a1a1aa; --accent: #f5c400; --accent2: #ffd84d;
+    --good: #86efac; --goodbg: #1f3a2a; --warn: #fde68a; --warnbg: #1c1a12; --warnline: #3a3214; --bad: #fca5a5; --badbg: #3a1717;
+    --display: "Space Grotesk", "Inter Display", "Segoe UI Semibold", "Segoe UI", sans-serif;
+    --body: Inter, "Segoe UI", system-ui, sans-serif;
+    --mono: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+  a { color: var(--accent); } a:hover { color: var(--accent2); }
+  button { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  .shell { display: grid; grid-template-columns: 252px 1fr; min-height: 100vh; }
+  aside.side { display: flex; flex-direction: column; gap: 24px; padding: 26px 18px; background: var(--side); border-right: 1px solid var(--line); position: sticky; top: 0; height: 100vh; overflow: auto; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { width: 48px; height: 48px; border-radius: 10px; display: block; }
+  .brand b { font-family: var(--display); font-size: 21px; display: block; line-height: 1.2; }
+  .brand b span { color: var(--accent); }
+  .brand small { font-size: 13px; color: var(--muted); }
+  .brand small i { color: var(--accent); font-style: normal; font-weight: 600; }
+  nav.steps { display: flex; flex-direction: column; gap: 6px; }
+  nav.steps button { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 0; background: transparent; color: #e4e4e7; font-weight: 500; min-height: 46px; text-align: left; cursor: pointer; }
+  nav.steps button span { display: inline-flex; flex: none; width: 26px; height: 26px; border-radius: 13px; border: 1.5px solid #52525b; align-items: center; justify-content: center; font-size: 14px; }
+  nav.steps button:hover { background: var(--card); }
+  nav.steps button[aria-current="step"] { background: var(--accent); color: #0b0b0c; font-weight: 600; }
+  nav.steps button[aria-current="step"] span { background: #0b0b0c; color: var(--accent); border: 0; font-weight: 700; }
+  .sidebox { padding: 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 14px; color: var(--soft); }
+  .sidebox h4 { margin: 0 0 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
+  .side .bottom { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+  select, input[type=number], input[type=text], textarea { background: var(--bg); color: var(--ink); border: 1px solid var(--line2); border-radius: 10px; font: 500 16px var(--body); }
+  select { min-height: 42px; padding: 0 10px; width: 100%; }
+  input[type=number], input[type=text] { min-height: 42px; padding: 0 10px; width: 100%; min-width: 0; }
+  textarea { width: 100%; padding: 10px 12px; font: 14px var(--mono); line-height: 1.45; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  main { padding: 28px 32px 40px; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+  .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .head small { font-size: 14px; color: var(--muted); }
+  h1 { margin: 2px 0 0; font-family: var(--display); font-size: 31px; line-height: 1.15; }
+  h2 { margin: 0; font-size: 18px; }
+  h3 { margin: 0 0 8px; font-size: 15px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; }
+  .panel { padding: 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); min-width: 0; }
+  .btn { min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: #0b0b0c; font-weight: 700; cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--accent2); }
+  .btn.big { min-height: 56px; font-size: 18px; width: 100%; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line2); font-weight: 600; }
+  .btn.ghost:hover:not(:disabled) { background: var(--card); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn[aria-pressed="true"] { outline: 2px solid var(--ink); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .note { font-size: 14px; color: var(--muted); margin: 0; }
+  .grid1 { display: grid; grid-template-columns: minmax(300px, 380px) 1fr minmax(250px, 300px); gap: 20px; align-items: start; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1.15fr; gap: 20px; align-items: start; }
+  @media (max-width: 1250px) { .grid1 { grid-template-columns: minmax(300px, 380px) 1fr; } .grid1 > .rescol { grid-column: 1 / -1; } }
+  @media (max-width: 980px) { .grid1, .grid2 { grid-template-columns: 1fr; } .shell { grid-template-columns: 1fr; } aside.side { position: static; height: auto; } }
+  fieldset { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+  legend { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; font-weight: 600; margin-bottom: 8px; padding: 0; }
+  label { display: flex; flex-direction: column; gap: 5px; font-size: 14px; color: var(--soft); min-width: 0; }
+  label.check { flex-direction: row; align-items: center; gap: 10px; }
+  label.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .full { grid-column: 1 / -1; }
+  .mtab { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 6px 8px; align-items: center; font-size: 13px; color: var(--muted); }
+  .mtab b { color: var(--ink); text-align: center; font-size: 13px; }
+  .mtab input { padding: 0 7px; font-size: 15px; }
+  details summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+  .alerts { display: flex; flex-direction: column; gap: 8px; }
+  .alert { padding: 10px 14px; border-radius: 10px; font-size: 14px; background: var(--warnbg); border: 1px solid var(--warnline); color: var(--warn); }
+  .alert.err { background: var(--badbg); border-color: #5b2323; color: var(--bad); }
+  .alert.info { background: var(--card); border-color: var(--line); color: var(--soft); }
+  .alert.ok { background: #13261b; border-color: #24452f; color: var(--good); }
+  .quality .big { font-family: var(--display); font-size: 42px; font-weight: 700; line-height: 1.1; }
+  .ok { color: var(--good); } .mid { color: var(--accent); } .bad { color: var(--bad); }
+  .meter { height: 8px; border-radius: 4px; background: #27272a; margin-top: 12px; overflow: hidden; }
+  .meter i { display: block; height: 8px; border-radius: 4px; background: var(--accent); }
+  .games { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .games button { text-align: left; padding: 16px 18px; min-height: 108px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+  .games button:hover { border-color: var(--line2); }
+  .games button[aria-pressed="true"] { background: var(--warnbg); border: 2px solid var(--accent); }
+  .games .gt { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; font-weight: 700; font-size: 17px; }
+  .badge { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .4px; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; }
+  .badge.tested { background: var(--goodbg); color: var(--good); }
+  .badge.exp { background: var(--warnbg); color: var(--warn); border: 1px solid var(--warnline); }
+  .badge.no { background: #27272a; color: var(--muted); }
+  .gs { font-size: 14px; } .gs.good { color: var(--good); } .gs.warn { color: var(--warn); }
+  .gsub { font-size: 13px; color: var(--muted); }
+  .fix ol { margin: 8px 0 0 20px; padding: 0; font-size: 15px; color: var(--soft); }
+  .fix .headline { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .fix .big { font-family: var(--display); font-size: 34px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: .6px; padding: 8px 10px; font-weight: 600; }
+  td { padding: 9px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+  .diff td.old, .diff td.new, .diff td.same { white-space: nowrap; }
+  td.num, .mono { font-family: var(--mono); }
+  .diff { background: var(--bg); border-radius: 10px; overflow: hidden; }
+  .diff .old { color: var(--muted); text-decoration: line-through; font-family: var(--mono); }
+  .diff .new { color: var(--accent); font-weight: 700; font-family: var(--mono); }
+  .diff .same { color: var(--muted); font-family: var(--mono); }
+  pre { margin: 0; padding: 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font: 13px/1.5 var(--mono); overflow: auto; max-height: 300px; white-space: pre; }
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+  .choice { display: flex; gap: 10px; }
+  .choice button { flex: 1; text-align: left; padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--line2); background: transparent; cursor: pointer; min-height: 48px; }
+  .choice button[aria-pressed="true"] { border: 2px solid var(--accent); background: var(--warnbg); font-weight: 600; }
+  .modalbg { position: fixed; inset: 0; background: rgba(0,0,0,.68); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 20px; }
+  .modal { width: min(580px, 100%); padding: 28px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line2); box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+  .modal h2 { font-family: var(--display); font-size: 22px; display: flex; gap: 10px; align-items: center; }
+  .modal p { font-size: 17px; line-height: 1.55; margin: 14px 0; }
+  .modal .row > .btn { flex: 1; min-height: 52px; }
+  .bk { padding: 14px 16px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; }
+  .bk .files { grid-column: 1 / -1; font-size: 14px; color: var(--soft); }
+  .st { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-left: 6px; }
+  .st.original { background: var(--goodbg); color: var(--good); } .st.aplicado { background: #1e2a3a; color: #93c5fd; }
+  .st.alterado { background: var(--warnbg); color: var(--warn); border: 1px solid var(--warnline); } .st.ausente, .st.ilegivel { background: var(--badbg); color: var(--bad); }
+  .viz svg { display: block; width: 100%; height: auto; }
+  .offline { padding: 10px 14px; border-radius: 10px; background: var(--card); border: 1px dashed var(--line2); font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side" aria-label="OZPanorama">
+    <div class="brand">
+      <img src="assets/icone.png" alt="Zuka Force">
+      <div><b>OZ<span>Panorama</span></b><small>Zuka Force · <i id="ver">Beta 0.1</i></small></div>
+    </div>
+    <nav class="steps" id="nav" aria-label="Steps">
+      <button type="button" data-step="1"><span>1</span><em data-t="Monitors and position" style="font-style:normal"></em></button>
+      <button type="button" data-step="2"><span>2</span><em data-t="Game and apply" style="font-style:normal"></em></button>
+      <button type="button" data-step="3" class="appOnly"><span>3</span><em data-t="Backups and restore" style="font-style:normal"></em></button>
+      <button type="button" data-step="4"><span>4</span><em data-t="Report a problem" style="font-style:normal"></em></button>
+    </nav>
+    <div class="bottom">
+      <label><span data-t="Language"></span><select id="lang"></select></label>
+      <div class="sidebox"><h4 data-t="In this Beta"></h4><span data-t="OZPanorama only changes Windows when you press Turn Surround on or off, and it asks you to confirm."></span>
+        <div id="screensNow" class="note" style="margin-top:6px"></div></div>
+      <button type="button" class="btn ghost appOnly" id="quit" data-t="Close OZPanorama"></button>
+    </div>
+  </aside>
+
+  <div>
+  <!-- ===== Passo 1: monitores e posição ===== -->
+  <main id="step1">
+    <div class="head">
+      <div><small data-t="Step 1 of 2 · Monitors and position"></small><h1 data-t="Your monitors"></h1></div>
+      <div class="row">
+        <button type="button" class="btn ghost" id="presetZuka" data-t="Example: Zuka's rig"></button>
+        <button type="button" class="btn ghost" id="presetClear" data-t="Clear"></button>
+        <button type="button" class="btn appOnly" id="detect" data-t="Detect monitors"></button>
+      </div>
+    </div>
+    <p class="note" id="exampleNote"></p>
+    <div id="detOut" class="stack appOnly" hidden></div>
+    <div class="panel stack appOnly" id="surPanel" hidden>
+      <div class="row" style="justify-content:space-between"><h2 data-t="NVIDIA Surround"></h2><span class="note" id="surState"></span></div>
+      <div class="row">
+        <button type="button" class="btn" id="surOn" data-t="Turn Surround on"></button>
+        <button type="button" class="btn ghost" id="surOff" data-t="Turn Surround off"></button>
+        <button type="button" class="btn" id="surKeep" hidden data-t="Keep these screens"></button>
+      </div>
+      <p class="note" id="surMsg"></p>
+      <details id="surSetup"><summary data-t="Save the Surround profiles (once)"></summary>
+        <p class="note" data-t="Once only: set up Surround in the NVIDIA panel the way you like it (with bezel correction) and press “Save with Surround”. Then turn it off in the panel and press “Save without Surround”. From then on it turns on and off with one click, with the same bezels."></p>
+        <div id="surProfiles" class="note stack"></div>
+        <div class="row"><button type="button" class="btn ghost" id="surSaveOn" data-t="Save with Surround"></button><button type="button" class="btn ghost" id="surSaveOff" data-t="Save without Surround"></button></div>
+      </details>
+    </div>
+    <div class="grid1">
+      <form class="panel" id="form" autocomplete="off">
+        <fieldset>
+          <legend data-t="Monitors (visible area, without bezel)"></legend>
+          <label><span data-t="Diagonal (in)"></span><input id="diag" type="number" step="0.1" min="10" max="120"></label>
+          <label><span data-t="Aspect ratio"></span><select id="aspect"><option value="16:9">16:9</option><option value="16:10">16:10</option><option value="21:9">21:9</option></select></label>
+          <div class="full mtab">
+            <div></div><b data-t="Left"></b><b data-t="Center"></b><b data-t="Right"></b>
+            <span data-t="Width (mm)"></span><input id="wL" type="number" step="0.1"><input id="wC" type="number" step="0.1"><input id="wR" type="number" step="0.1">
+            <span data-t="Height (mm)"></span><input id="hL" type="number" step="0.1"><input id="hC" type="number" step="0.1"><input id="hR" type="number" step="0.1">
+            <span data-t="Resolution (px)"></span><input id="xL" type="number" step="1"><input id="xC" type="number" step="1"><input id="xR" type="number" step="1">
+            <span></span><input id="yL" type="number" step="1"><input id="yC" type="number" step="1"><input id="yR" type="number" step="1">
+          </div>
+          <p class="note full" data-t="Width and height of the visible area of each monitor, without bezel (on a curved screen, along the screen). Leave both blank to use the diagonal and aspect ratio."></p>
+          <label class="full check"><input id="curvC" type="checkbox"><span data-t="Curved center monitor"></span></label>
+          <label class="curvC"><span data-t="Center radius (R)"></span><input id="rC" type="number" step="100" min="300" max="6000"></label>
+          <label class="full check"><input id="curvS" type="checkbox"><span data-t="Curved side monitors"></span></label>
+          <label class="curvS"><span data-t="Side radius (R)"></span><input id="rS" type="number" step="100" min="300" max="6000"></label>
+        </fieldset>
+        <fieldset>
+          <legend data-t="Mounting"></legend>
+          <label class="full"><span data-t="Distance between the outer ends of the left and right monitors (mm)"></span><input id="tD" type="number" step="1" min="300" max="4000"></label>
+          <p class="note full" id="tDOut"></p>
+          <p class="note full" data-t="Measure in a straight line from the outer end of the left monitor to the outer end of the right monitor, at the front top corners. The angle of each side appears by itself."></p>
+          <input id="tA" type="hidden"><input id="tB" type="hidden">
+          <label><span data-t="Left side angle (°)"></span><input id="angL" type="number" step="0.5" min="0" max="90"></label>
+          <label><span data-t="Right side angle (°)"></span><input id="angR" type="number" step="0.5" min="0" max="90"></label>
+          <label class="full"><span data-t="Gap between visible areas, both bezels (mm)"></span><input id="gap" type="number" step="0.5" min="0" max="200"></label>
+          <p class="note full" id="gapNote"></p>
+        </fieldset>
+        <fieldset style="margin-bottom:0">
+          <legend data-t="Eyes"></legend>
+          <label><span data-t="Distance to the center screen (mm)"></span><input id="dist" type="number" step="5" min="150" max="3000"></label>
+          <label><span data-t="Above the screen center (mm)"></span><input id="eyeUp" type="number" step="5"></label>
+          <label class="full check"><input id="pxGap" type="checkbox"><span data-t="Surround with bezel correction (hidden pixels)"></span></label>
+        </fieldset>
+      </form>
+
+      <section class="panel viz stack" aria-label="Top view">
+        <div class="row" style="justify-content:space-between"><h2 data-t="Top view"></h2><span class="note" data-t="To scale"></span></div>
+        <div id="topview"></div>
+        <p class="note" data-t="Monitors in their real position and your head to scale. Sizes calculated from the diagonal are dashed."></p>
+      </section>
+
+      <section class="rescol stack" aria-label="Result">
+        <div class="panel quality" id="quality"></div>
+        <div class="alerts" id="alerts"></div>
+        <button type="button" class="btn big" id="next" data-t="Continue to the game"></button>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== Passo 2: jogo e aplicar ===== -->
+  <main id="step2" hidden>
+    <div class="head">
+      <div><small data-t="Step 2 of 2 · Game and apply"></small><h1 data-t="Choose the simulator"></h1></div>
+      <span class="note" data-t="Only simulators tested in this Beta are shown"></span>
+    </div>
+    <div class="grid2">
+      <section class="stack">
+        <div class="games" id="games" role="group"></div>
+        <div class="panel fix" id="fix"></div>
+        <div id="outExtra"></div>
+        <div class="alerts" id="alerts2"></div>
+        <details class="panel" id="techBox">
+          <summary><span id="outTitle"></span> · <span data-t="technical details"></span></summary>
+          <p class="note" id="outNote" style="margin:10px 0"></p>
+          <pre id="out"></pre>
+          <div class="row" style="margin-top:10px"><button type="button" class="btn ghost" id="copy" data-t="Copy values"></button></div>
+        </details>
+      </section>
+
+      <section class="panel stack" id="applyPanel" aria-label="Apply">
+        <div class="row" style="justify-content:space-between"><h2 data-t="What will change"></h2><span class="note" data-t="Preview"></span></div>
+        <div id="offline" class="offline" hidden></div>
+        <div id="notValidated" class="offline" hidden></div>
+        <div id="msfsWin" class="stack" hidden></div>
+        <div id="preview" class="stack"></div>
+        <div class="alerts" id="pvAlerts"></div>
+        <div class="row note" id="backupNote" style="gap:10px;flex-wrap:nowrap;align-items:flex-start">
+          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" style="flex:none;margin-top:2px"><path d="M10 2 L17 5 V10 C17 14 14 17 10 18 C6 17 3 14 3 10 V5 Z" fill="none" stroke="#86efac" stroke-width="1.8"/></svg>
+          <span data-t="Before writing, a backup of the original files is created and checked in Documents\OZPanorama\backups. Nothing else in the files is touched."></span>
+        </div>
+        <button type="button" class="btn big" id="apply" disabled></button>
+        <div class="alerts" id="applyMsg" aria-live="polite"></div>
+        <button type="button" class="btn ghost appOnly" id="goBackups" data-t="Backups and restore"></button>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== Passo 3: backups e restauro ===== -->
+  <main id="step3" hidden>
+    <div class="head">
+      <div><small data-t="Backups and restore"></small><h1 data-t="Your backups"></h1></div>
+      <button type="button" class="btn ghost" id="bkRefresh" data-t="Refresh"></button>
+    </div>
+    <p class="note" data-t="Every change made by OZPanorama has a backup. Backups are never deleted or overwritten. Before restoring, the current state is saved in a new backup."></p>
+    <div class="alerts" id="bkMsg" aria-live="polite"></div>
+    <div id="bkList" class="stack"></div>
+  </main>
+
+  <!-- ===== Passo 4: reportar problema ===== -->
+  <main id="step4" hidden>
+    <div class="head"><div><small data-t="Report a problem"></small><h1 data-t="Something went wrong?"></h1></div></div>
+    <div class="grid2">
+      <section class="panel stack">
+        <label><span data-t="What happened? (in your own words)"></span><textarea id="repDesc" rows="5" style="font-family:var(--body);font-size:15px"></textarea></label>
+        <label class="check"><input id="repLog" type="checkbox" checked><span data-t="Include the last lines of the OZPanorama log"></span></label>
+        <button type="button" class="btn" id="repMake" data-t="Prepare the report"></button>
+        <p class="note" data-t="Nothing is sent automatically. You read the report first; personal folder names and emails are removed. Configuration files and backups are never included."></p>
+      </section>
+      <section class="panel stack">
+        <label><span data-t="Report (you can edit it)"></span><textarea id="repText" rows="16"></textarea></label>
+        <div class="row">
+          <button type="button" class="btn" id="repOpen" disabled data-t="Open on GitHub"></button>
+          <button type="button" class="btn ghost" id="repCopy" disabled data-t="Copy"></button>
+        </div>
+        <p class="note" id="repMsg"></p>
+      </section>
+    </div>
+  </main>
+  </div>
+</div>
+
+<div class="modalbg" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+    <div id="modalExtra" class="note"></div>
+    <div class="row" style="margin-top:20px"><button type="button" class="btn ghost" id="modalNo"></button><button type="button" class="btn" id="modalYes"></button></div>
+  </div>
+</div>
+
+<script type="module">
+import * as E from "./engine.js";
+import { LANGS, makeT } from "./i18n.js";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// ---------------- Língua (as mesmas do FS25 RealFFB: en, pt-BR, es, fr) ----------------
+let lang = "en", T = (s) => s;
+const F = (s, ...a) => T(s).replace(/\{(\d+)\}/g, (_, i) => a[+i]);
+function pickLang() {
+  let saved = null; try { saved = localStorage.getItem("ozp.lang"); } catch {}
+  if (saved && LANGS.some((l) => l.code === saved)) return saved;
+  const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+  return LANGS.some((l) => l.code === nav) ? nav : "en";
+}
+function setLang(code) {
+  lang = code; T = makeT(code);
+  try { localStorage.setItem("ozp.lang", code); } catch {}
+  document.documentElement.lang = LANGS.find((l) => l.code === code).html;
+  document.querySelectorAll("[data-t]").forEach((e) => (e.textContent = T(e.dataset.t)));
+  $("lang").value = code;
+  buildGames(); render(); renderPreview(); if (step === 3) loadBackups();
+}
+for (const l of LANGS) { const o = document.createElement("option"); o.value = l.code; o.textContent = l.name; $("lang").appendChild(o); }
+$("lang").addEventListener("change", (e) => setLang(e.target.value));
+const f1 = (v) => (lang === "en" ? v.toFixed(1) : v.toFixed(1).replace(".", ","));
+
+// ---------------- Passos ----------------
+let step = 1;
+function go(n) {
+  step = n;
+  for (let i = 1; i <= 4; i++) $("step" + i).hidden = i !== n;
+  document.querySelectorAll("#nav button").forEach((b) => { if (+b.dataset.step === n) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current"); });
+  if (n === 3) loadBackups();
+  if (n === 2) schedulePreview();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("#nav button").forEach((b) => b.addEventListener("click", () => go(+b.dataset.step)));
+$("next").addEventListener("click", () => go(2));
+$("goBackups").addEventListener("click", () => go(3));
+
+// ---------------- Simuladores da Beta ----------------
+const GAMES = [
+  { k: "ets2", name: "Euro Truck Simulator 2", sub: "Needs Surround on" },
+  { k: "ats", name: "American Truck Simulator", sub: "Needs Surround on" },
+  { k: "iracing", name: "iRacing", sub: "3 screens · 7 settings" },
+  { k: "msfs", name: "Microsoft Flight Simulator 2024", sub: "Without Surround · 3 windows" },
+];
+let game = "msfs";
+const BADGE = { testado: ["tested", "Tested"], experimental: ["exp", "Experimental"], "nao-validado": ["no", "Not validated"] };
+function buildGames() {
+  const box = $("games"); box.innerHTML = "";
+  for (const g of GAMES) {
+    const info = appInfo && appInfo.games.find((x) => x.id === g.k);
+    const status = info ? info.status : "testado";
+    const [cls, label] = BADGE[status] || BADGE["nao-validado"];
+    let st = "", stc = "";
+    if (info) {
+      const missing = info.files.filter((f) => !f.existe && !/multimon_config/.test(f.nome));
+      st = info.running ? T("Game is open: close it to apply") : missing.length ? T("Settings file not found") : T("Files found · game closed");
+      stc = info.running || missing.length ? "warn" : "good";
+    }
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.k = g.k; b.setAttribute("aria-pressed", String(g.k === game));
+    b.innerHTML = `<span class="gt"><span>${esc(g.name)}</span><span class="badge ${cls}">${esc(T(label))}</span></span>` +
+      (st ? `<span class="gs ${stc}">${esc(st)}</span>` : "") + `<span class="gsub">${esc(T(g.sub))}</span>`;
+    b.addEventListener("click", () => { game = g.k; msfsLeft = null; buildGames(); render(); schedulePreview(); });
+    box.appendChild(b);
+  }
+}
+
+// ---------------- Leitura e validação das medidas (B2: nada é inventado) ----------------
+const MON = { L: "Left monitor", C: "Center monitor", R: "Right monitor" };
+function readInputs() {
+  const errs = [], missing = [];
+  const raw = (id) => $(id).value.trim();
+  const num = (id) => { const s = raw(id); if (s === "") return null; const v = Number(s.replace(",", ".")); return Number.isFinite(v) ? v : NaN; };
+  const need = (id, label) => {
+    const v = num(id);
+    if (v === null) missing.push(label);
+    else if (Number.isNaN(v)) errs.push(F("Invalid value in: {0}.", label));
+    return v === null || Number.isNaN(v) ? null : v;
+  };
+  const [aw, ah] = $("aspect").value.split(":").map(Number);
+  let diag;
+  const spec = (name, k) => {
+    const mn = T(MON[k]);
+    const rx = need("x" + k, F("horizontal resolution of the {0}", mn.toLowerCase())), ry = need("y" + k, F("vertical resolution of the {0}", mn.toLowerCase()));
+    const m = { name, res_px: [rx, ry] };
+    const w = num("w" + k), h = num("h" + k);
+    if (w === null && h === null) {
+      if (diag === undefined) diag = need("diag", T("diagonal (or width and height of each monitor)"));
+      Object.assign(m, { diagonal_in: diag, aspect: [aw, ah] });
+    } else if (w === null || h === null) errs.push(F("{0}: fill in width and height, or leave both blank to use the diagonal.", mn));
+    else if (Number.isNaN(w) || Number.isNaN(h)) errs.push(F("{0}: invalid width or height.", mn));
+    else Object.assign(m, { width_mm: w, height_mm: h });
+    return m;
+  };
+  const center = spec("center", "C"), L = spec("left", "L"), R = spec("right", "R");
+  document.querySelectorAll(".curvC").forEach((e) => (e.style.display = $("curvC").checked ? "" : "none"));
+  document.querySelectorAll(".curvS").forEach((e) => (e.style.display = $("curvS").checked ? "" : "none"));
+  const rC = $("curvC").checked ? need("rC", T("radius of the curved center monitor")) : null;
+  const rS = $("curvS").checked ? need("rS", T("radius of the curved side monitors")) : null;
+  if (rC != null) center.curve_radius_mm = rC;
+  const sideCurve = rS != null ? { curve_radius_mm: rS } : {};
+  const angL = need("angL", T("left side angle")), angR = need("angR", T("right side angle"));
+  const gap = need("gap", T("gap between visible areas (0 if none)"));
+  const dist = need("dist", T("distance from the eyes to the center screen"));
+  const eyeUp = need("eyeUp", T("eye height above the screen center (0 if level)"));
+  if (missing.length) errs.unshift(F("Missing: {0}.", missing.join("; ")));
+  return { errs, center, left: { ...L, ...sideCurve, hinge_deg: angL, gap_mm: gap }, right: { ...R, ...sideCurve, hinge_deg: angR, gap_mm: gap }, dist, eyeUp };
+}
+const arcTooLong = (arc, R) => !(R > 0) || arc / R >= Math.PI;
+const SIDE = { left: "L", center: "C", right: "R" };
+function validate(i) {
+  const errs = [...i.errs], warns = [], notes = [];
+  if (errs.length) return { errs, warns, notes };
+  if (i.dist < 150 || i.dist > 3000) errs.push(T("Eye distance outside the plausible range (150 to 3000 mm)."));
+  for (const a of [i.left.hinge_deg, i.right.hinge_deg]) if (a < 0 || a > 90) errs.push(F("Angle of {0}° outside 0 to 90°.", a));
+  if (i.left.gap_mm < 0 || i.left.gap_mm > 200) errs.push(T("Gap outside 0 to 200 mm."));
+  for (const m of [i.left, i.center, i.right]) {
+    const n = T(MON[SIDE[m.name]]), [rx, ry] = m.res_px;
+    if (!(Number.isInteger(rx) && Number.isInteger(ry) && rx >= 320 && ry >= 240 && rx <= 16384 && ry <= 16384)) errs.push(F("{0}: resolution {1}×{2} is not valid.", n, rx, ry));
+    if (m.diagonal_in != null && !(m.diagonal_in >= 10 && m.diagonal_in <= 120)) errs.push(F("Diagonal of {0}\" outside 10 to 120 in.", m.diagonal_in));
+    if (m.width_mm != null && !(m.height_mm >= 50 && m.height_mm <= 2000)) errs.push(F("{0}: height of {1} mm does not look like a screen.", n, m.height_mm));
+    if (m.curve_radius_mm != null) {
+      const arc = E.specSize({ ...m, curve_radius_mm: null })[0];
+      if (arcTooLong(arc, m.curve_radius_mm)) errs.push(F("{0}: a radius of {1} mm is impossible for {2} mm of width (more than half a circle).", n, m.curve_radius_mm, Math.round(arc)));
+      else if (m.curve_radius_mm < 300) errs.push(F("{0}: radius of {1} mm is too small (minimum 300 mm).", n, m.curve_radius_mm));
+    }
+  }
+  if (errs.length) return { errs, warns, notes };
+  let calc = false;
+  for (const m of [i.left, i.center, i.right]) {
+    const n = T(MON[SIDE[m.name]]), [w, h, o] = E.specSize(m);
+    if (w < 100 || w > 3000) errs.push(F("{0}: width of {1} mm does not look like a screen. Did you measure in millimetres?", n, Math.round(w)));
+    else if (Math.abs((w / h) / (m.res_px[0] / m.res_px[1]) - 1) > 0.03) warns.push(F("{0}: the measured proportion does not match the resolution. Check width and height of the visible area.", n));
+    if (o === "calculado") calc = true;
+  }
+  if (calc) warns.push(T("Some size was calculated from the diagonal. Measuring the visible area with a tape measure is more accurate."));
+  for (const [m, d] of [[i.center, i.dist], [i.left, i.dist / 0.85]]) {
+    if (!m.curve_radius_mm) continue;
+    const arc = E.specSize({ ...m, curve_radius_mm: null })[0], [chord, sag] = E.chordFromArc(arc, m.curve_radius_mm);
+    const e = E.curvedFlatErrorDeg(arc, m.curve_radius_mm, d);
+    (e > 0.5 ? warns : notes).push(F(m === i.center ? "Curved center {0}R: treated as flat by its chord ({1} mm of arc → {2} mm, sag {3} mm). Error of this approximation: {4}°." : "Curved sides {0}R: treated as flat by their chord ({1} mm of arc → {2} mm, sag {3} mm). Error of this approximation: {4}°.",
+      Math.round(m.curve_radius_mm), f1(arc), f1(chord), f1(sag), e.toFixed(2).replace(".", lang === "en" ? "." : ",")));
+    if (m === i.center) notes.push(F("Distance to a curved center screen: measure to the line between the screen ends. If you measured to the middle of the screen, subtract {0} mm.", Math.round(sag)));
+  }
+  if (!!i.center.curve_radius_mm !== !!i.left.curve_radius_mm && game === "iracing") warns.push(T("Curved and flat mixed: iRacing only accepts three equal screens. It uses \"3 Flat Screens\", with the curved one treated as flat by its chord."));
+  return { errs, warns, notes };
+}
+
+// ---------------- Vista de cima à escala, com a cabeça ----------------
+function topView(rig) {
+  const W = 640, HEAD = { rx: 77.5, ry: 97.5, back: 82, ipd: 63 };   // cabeça vista de cima ~155 × 195 mm; olhos ~15 mm atrás da cara
+  const pts = [[0, 0], [-230, HEAD.back + 95 + 85 + 50], [230, HEAD.back + 95 + 85 + 50]];
+  for (const m of rig.monitors) { const c = E.corners(m); pts.push([c.bl[0], c.bl[2]], [c.br[0], c.br[2]]); }
+  const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
+  const span = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...zs) - Math.min(...zs)) * 1.25);
+  const pad = 56, k = (W - 2 * pad) / span, H = Math.round((Math.max(...zs) - Math.min(...zs)) * k + 2 * pad);
+  const cx = (Math.max(...xs) + Math.min(...xs)) / 2, z0 = Math.min(...zs);
+  const P = (v) => [W / 2 + (v[0] - cx) * k, pad + (v[2] - z0) * k];
+  const t = (x, y, s, o = {}) => `<text x="${x}" y="${y}" text-anchor="${o.a || "middle"}" fill="${o.c || "#a1a1aa"}" font-size="${o.fs || 19}" font-family="Inter, Segoe UI, sans-serif"${o.b ? ' font-weight="700"' : ""}>${esc(s)}</text>`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T("Top view to scale: monitors and your head"))}">`;
+  const eye = P([0, 0, 0]);
+  for (const m of rig.monitors) {
+    const c = E.corners(m), a = P(c.bl), b = P(c.br);
+    s += `<line x1="${eye[0]}" y1="${eye[1]}" x2="${a[0]}" y2="${a[1]}" stroke="#3f3f46" stroke-width="1.2" stroke-dasharray="5 6"/><line x1="${eye[0]}" y1="${eye[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#3f3f46" stroke-width="1.2" stroke-dasharray="5 6"/>`;
+  }
+  for (const m of rig.monitors) {
+    const c = E.corners(m), a = P(c.bl), b = P(c.br), f = E.frustum(m);
+    const dash = m.origin === "medido" ? "" : ' stroke-dasharray="12 6"';
+    if (m.curve_radius_mm) {
+      // Côncavo para os olhos: as pontas ficam na corda e o meio recua a flecha.
+      const half = m.width_mm / 2, R = m.curve_radius_mm, sag = R - Math.sqrt(Math.max(R * R - half * half, 0)), n = E.normalOf(m);
+      const q = P([m.center[0] - n[0] * 2 * sag, 0, m.center[2] - n[2] * 2 * sag]);
+      s += `<path d="M ${a[0]} ${a[1]} Q ${q[0]} ${q[1]} ${b[0]} ${b[1]}" fill="none" stroke="#f4f4f5" stroke-width="8"${dash}/>`;
+      s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#71717a" stroke-width="1" stroke-dasharray="3 4"/>`;
+      const top = P([m.center[0] - n[0] * (sag + 45), 0, m.center[2] - n[2] * (sag + 45)]);
+      s += t(top[0], top[1], F("{0}R · sag {1} mm", Math.round(R), Math.round(sag)));
+    } else s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#f4f4f5" stroke-width="8"${dash}/>`;
+    if (m.name !== "center") {
+      const out = P(m.center.map((v, i) => v - E.normalOf(m)[i] * 110));
+      s += t(out[0], out[1] + 4, `${f1(Math.abs(f.yaw_deg))}°`, { c: "#f5c400", fs: 24, b: 1 });
+    }
+  }
+  const cMon = rig.monitors.find((m) => m.name === "center"), mid = P([0, 0, cMon.center[2] / 2]);
+  s += t(mid[0] + 10, mid[1], `${Math.round(-cMon.center[2])} mm`, { c: "#f5c400", fs: 24, b: 1, a: "start" });
+  // Pessoa à escala, vista de cima: ombros (~460 mm), cabeça (~155 × 195 mm), orelhas, cabelo, nariz e olhos (~63 mm entre si).
+  const hc = P([0, 0, HEAD.back]), ex = HEAD.ipd / 2 * k, R = (mm) => mm * k;
+  const sh = P([0, 0, HEAD.back + 95]);
+  s += `<ellipse cx="${sh[0]}" cy="${sh[1]}" rx="${R(230)}" ry="${R(85)}" fill="#3f3f46" stroke="#71717a" stroke-width="1.5"/>`;
+  s += `<ellipse cx="${hc[0]}" cy="${hc[1] + R(45)}" rx="${R(60)}" ry="${R(55)}" fill="#52525b"/>`;
+  for (const sg of [-1, 1]) s += `<ellipse cx="${hc[0] + sg * R(HEAD.rx + 4)}" cy="${hc[1] - R(5)}" rx="${R(11)}" ry="${R(30)}" fill="#c9b8a6" stroke="#8a7a6a" stroke-width="1"/>`;
+  s += `<defs><clipPath id="ozpHead"><ellipse cx="${hc[0]}" cy="${hc[1]}" rx="${R(HEAD.rx)}" ry="${R(HEAD.ry)}"/></clipPath></defs>`;
+  s += `<ellipse cx="${hc[0]}" cy="${hc[1]}" rx="${R(HEAD.rx)}" ry="${R(HEAD.ry)}" fill="#e0cdb8"/>`;
+  s += `<ellipse cx="${hc[0]}" cy="${hc[1] + R(62)}" rx="${R(HEAD.rx + 6)}" ry="${R(HEAD.ry)}" fill="#2b2118" clip-path="url(#ozpHead)"/>`;
+  s += `<ellipse cx="${hc[0]}" cy="${hc[1]}" rx="${R(HEAD.rx)}" ry="${R(HEAD.ry)}" fill="none" stroke="#f4f4f5" stroke-width="1.5"/>`;
+  const nose = P([0, 0, -15 - 22]), nb = P([0, 0, -10]);
+  s += `<path d="M ${nb[0] - R(16)} ${nb[1]} Q ${nose[0] - R(4)} ${nose[1]} ${nose[0]} ${nose[1]} Q ${nose[0] + R(4)} ${nose[1]} ${nb[0] + R(16)} ${nb[1]} Z" fill="#e0cdb8" stroke="#f4f4f5" stroke-width="1.5" stroke-linejoin="round"/>`;
+  s += `<circle cx="${eye[0] - ex}" cy="${eye[1]}" r="${Math.max(3, R(9))}" fill="#f5c400"/><circle cx="${eye[0] + ex}" cy="${eye[1]}" r="${Math.max(3, R(9))}" fill="#f5c400"/>`;
+  const lab = P([0, 0, HEAD.back + 95 + 85 + 40]);
+  s += t(lab[0], lab[1], T("your position (to scale)"));
+  return s + "</svg>";
+}
+
+// ---------------- Cálculo por jogo ----------------
+const errClass = (e) => (e < 0.5 ? "ok" : e < 3 ? "mid" : "bad");
+const msfsOpt = { hideBezel: true, hfov: "" };
+let current = null;   // B1: a única configuração que pode ser aplicada, sempre a da última renderização válida
+let appInfo = null;
+function invalidate(errsHtml = "") {
+  current = null; window.__rig = null;
+  $("out").textContent = ""; $("outExtra").innerHTML = ""; $("outNote").textContent = ""; $("outTitle").textContent = "";
+  $("topview").innerHTML = "";
+  $("quality").innerHTML = `<h3>${esc(T("No configuration"))}</h3><p class="note">${esc(T("The current data has errors. Nothing can be copied or applied until they are fixed."))}</p>`;
+  $("fix").innerHTML = `<h2>${esc(T("No configuration"))}</h2><p class="note">${esc(T("The current data has errors. Nothing can be copied or applied until they are fixed."))}</p>`;
+  $("copy").disabled = true; $("next").disabled = false;
+  pv = null; renderPreview();
+}
+function render() { try { renderInner(); } catch (e) { invalidate(); $("alerts").innerHTML += `<div class="alert err">${esc(T("Internal calculation error"))}: ${esc(e.message)}</div>`; } }
+function renderInner() {
+  const i = readInputs(), v = validate(i);
+  const al = [...v.errs.map((e) => `<div class="alert err">${esc(e)}</div>`), ...v.warns.map((w) => `<div class="alert">${esc(w)}</div>`), ...v.notes.map((n) => `<div class="alert info">${esc(n)}</div>`)].join("");
+  $("alerts").innerHTML = al; $("alerts2").innerHTML = v.errs.length ? `<div class="alert err">${esc(T("Fix the measurements in step 1 first."))}</div>` : "";
+  if (v.errs.length) { invalidate(); return; }
+  for (const s of [i.left, i.right]) s.desktop_gap_px = $("pxGap").checked ? Math.round(s.gap_mm * s.res_px[0] / E.specSize({ ...s, curve_radius_mm: null })[0]) : 0;
+  let rig;
+  try { rig = E.buildRow(i.center, [i.left], [i.right], i.dist, i.eyeUp, 0); }
+  catch (e) { invalidate(); $("alerts").innerHTML += `<div class="alert err">${esc(e.message)}</div>`; return; }
+  $("topview").innerHTML = topView(rig);
+  const err = E.compareMethods(rig), worstExact = Math.max(err.left.exata, err.right.exata);
+  let title = "", note = "", text = "", extra = "", values = null, err1 = worstExact, steps = [], limit = "";
+  if (game === "ets2" || game === "ats") {
+    const plan = E.scsPlan(rig), w = Math.round(plan.width), h = Math.round(plan.height);
+    title = "multimon_config.sii + config.cfg";
+    text = E.scsSii(plan);
+    note = F("File in Documents\\{0}\\. In config.cfg only r_multimon_mode \"4\" is changed. The game resolution should be {1}×{2}, the same as the Surround area: choose it in the game options if it is different (this Beta does not change it).", game === "ets2" ? "Euro Truck Simulator 2" : "American Truck Simulator", w, h);
+    values = { sii: text, width: w, height: h };
+    steps = [T("Turns on separate views (r_multimon_mode 4 in config.cfg): each screen gets its own image."), T("Writes multimon_config.sii with each screen's rotation and the crop that off-centres the image."), F("Checks that the game resolution matches the Surround area ({0}×{1}) and warns you if it doesn't.", w, h)];
+    limit = T("Needs NVIDIA Surround (or AMD Eyefinity) turned on, with bezel correction if you use it.");
+  } else if (game === "iracing") {
+    const p = E.iracingValues(rig);
+    title = "rendererDX11Monitor.ini";
+    text = Object.entries(p.setup).map(([k, val]) => `${k}=${val}`).join("\n") + `\nViewingDist=${p.viewingDistance}`;
+    note = F("In the game's FOV calculator, use a distance of {0} mm. The calculated FOV should be around {1}°.", p.viewingDistance, f1(p.totalHfov));
+    values = { ...p.setup, ViewingDist: p.viewingDistance };
+    steps = [T("Turns on one projection per monitor (RenderViewPerMonitor=1)."), T("Writes the monitor width, bezels and side angle; iRacing calculates the geometry from them."), T("Writes the viewing distance for the FOV calculator.")];
+    limit = T("iRacing only accepts equal monitors and the same angle on both sides.");
+  } else {
+    const hs = String(msfsOpt.hfov).trim(), userH = hs === "" ? null : Number(hs.replace(",", "."));
+    const optHtml = (hide) => `<div class="panel stack">
+      <label class="check"><input id="mHide" type="checkbox" ${hide ? "checked" : ""}><span>${esc(T("Hide the image behind the bezels (like pillars)"))}</span></label>
+      <label style="max-width:320px"><span>${esc(T("Horizontal FOV in use (°, empty = calculated)"))}</span><input id="mHfov" type="number" step="0.1" value="${esc(msfsOpt.hfov)}"></label></div>`;
+    if (userH !== null && !(userH >= E.MSFS2024_HFOV_RANGE[0] && userH <= E.MSFS2024_HFOV_RANGE[1])) {
+      invalidate();
+      $("alerts2").innerHTML = `<div class="alert err">${esc(F("Invalid MSFS horizontal FOV: use {0}° to {1}°, or leave it empty for OZPanorama to calculate it.", E.MSFS2024_HFOV_RANGE[0], E.MSFS2024_HFOV_RANGE[1]))}</div>`;
+      $("outExtra").innerHTML = optHtml(msfsOpt.hideBezel); bindMsfs(); return;
+    }
+    const cfg = E.msfs2024Config(rig, { hideBezel: msfsOpt.hideBezel, hfov: userH });
+    const [vLo, vHi] = E.MSFS_VFOV_LIMIT, rad = (cfg.vfov * Math.PI / 180).toFixed(3);
+    const extraAl = [];
+    if (cfg.outOfLimit) extraAl.push(F("MSFS: vertical FOV of {0}° outside {1}°–{2}°, the zoom range measured in MSFS 2024 (cockpit camera). The simulator may not reach this zoom.", f1(cfg.vfov), vLo, vHi));
+    if (cfg.unconstrained) extraAl.push(F("MSFS: the best FOV for this rig would be {0}° vertical (error {1}°), outside the zoom measured in MSFS 2024 ({2}° to {3}°). {4}° was used (error {5}°).", f1(cfg.unconstrained.vfov), f1(cfg.unconstrained.max), vLo, vHi, f1(cfg.vfov), f1(cfg.max)));
+    $("alerts2").innerHTML = extraAl.map((x) => `<div class="alert">${esc(x)}</div>`).join("");
+    title = "UserCfg.opt";
+    text = cfg.lines.join("\n");
+    note = F("Three borderless full-screen windows, one per monitor. FOV used: {0}° horizontal = {1}° vertical ({2} rad in the developer mode \"Fov\").", f1(cfg.hfov), f1(cfg.vfov), rad);
+    values = { rotLeft: +cfg.rl.toFixed(6), rotRight: +cfg.rr.toFixed(6) };
+    err1 = cfg.max;
+    extra = optHtml(msfsOpt.hideBezel) + `<div class="alert info">${esc(F("Recommended zoom: \"Fov\" {0} rad in the simulator's developer mode (it is not written; another zoom also lines up, only the size changes).", rad))}</div>`;
+    steps = [T("Close the simulator (it rewrites UserCfg.opt when it exits). Surround must be off for MSFS."), F("Writes only the rotation of the two extra windows that already exist (±{0}).", cfg.rr.toFixed(2)), T("Keeps your monitor numbers and everything else in the file as it is.")];
+    limit = T("MSFS uses the same FOV in every window and does not off-centre the image: the far ends of the side screens keep a small perspective error.");
+  }
+  const g = GAMES.find((x) => x.k === game);
+  const cls = errClass(err1), feel = cls === "ok" ? T("not noticeable") : cls === "mid" ? T("noticeable at the joins between screens") : T("bent lines at the joins");
+  $("fix").innerHTML = `<h2>${esc(F("In {0}", g.name))}</h2>
+    <div class="headline"><span class="big ${cls}">${f1(err1)}°</span><span class="note">${esc(T("maximum error left"))} · ${esc(feel)}</span></div>
+    <p class="note" style="margin-top:8px">${esc(T("What OZPanorama does:"))}</p><ol>${steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+    <p class="note" style="margin-top:8px"><b>${esc(T("Limit:"))}</b> ${esc(limit)}</p>`;
+  $("quality").innerHTML = `<div class="note">${esc(T("Quality of the joins"))}</div><div class="big ${cls}">${f1(err1)}°</div>
+    <div style="font-size:15px;color:var(--soft)">${esc(F("maximum deviation at the ends, in {0}", g.name))}</div>
+    <div class="meter"><i style="width:${Math.max(4, Math.min(100, 100 - err1 * 20))}%"></i></div>`;
+  $("outTitle").textContent = title; $("outNote").textContent = note; $("outExtra").innerHTML = extra;
+  if (game === "msfs") bindMsfs();
+  $("out").textContent = text;
+  window.__rig = rig;
+  const changed = !current || current.game !== game || JSON.stringify(current.values) !== JSON.stringify(values);
+  current = { game, text, values };
+  $("copy").disabled = false;
+  if (changed) { $("applyMsg").innerHTML = ""; schedulePreview(); }
+}
+function bindMsfs() {
+  $("mHide").onchange = (e) => { msfsOpt.hideBezel = e.target.checked; render(); };
+  $("mHfov").onchange = (e) => { msfsOpt.hfov = e.target.value; render(); };
+}
+
+// ---------------- Exemplos ----------------
+const EMPTY = { diag: "", aspect: "16:9", wL: "", hL: "", wC: "", hC: "", wR: "", hR: "", xL: "", yL: "", xC: "", yC: "", xR: "", yR: "", rC: "", rS: "", angL: "", angR: "", gap: "", dist: "", eyeUp: "", tA: "", tB: "", tD: "" };
+const PRESETS = {
+  vazio: { note: "New rig: enter your measurements or use \"Detect monitors\". No value is assumed.", v: EMPTY, px: false, curvC: false, curvS: false },
+  zuka: { note: "Example: Zuka's test rig, measured on 14/11/2026: three 27\" monitors (curved HP X27c 1500R in the center), eyes at 710 mm, sides at 56°, Surround with 39 px hidden per join.", v: { diag: 27, aspect: "16:9", wL: 597.7, hL: 336.2, wC: 596.9, hC: 336.3, wR: 597.7, hR: 336.2, xL: 1920, yL: 1080, xC: 1920, yC: 1080, xR: 1920, yR: 1080, rC: 1500, rS: "", angL: 56, angR: 56, gap: 12.1, dist: 710, eyeUp: 0, tA: 611.3, tB: 613.8, tD: "" }, px: true, curvC: true, curvS: false },
+};
+let presetNote = PRESETS.vazio.note;
+function applyPreset(k) {
+  const p = PRESETS[k];
+  for (const [id, v] of Object.entries(p.v)) $(id).value = v;
+  $("pxGap").checked = p.px; $("curvC").checked = p.curvC; $("curvS").checked = p.curvS;
+  presetNote = p.note; $("exampleNote").textContent = T(presetNote);
+  $("presetZuka").setAttribute("aria-pressed", String(k === "zuka"));
+  saveRig(); render();
+}
+$("presetZuka").addEventListener("click", () => applyPreset("zuka"));
+$("presetClear").addEventListener("click", () => applyPreset("vazio"));
+// As medidas ficam guardadas neste computador para a próxima vez (nunca são enviadas).
+const FIELDS = Object.keys(EMPTY);
+function saveRig() { try { localStorage.setItem("ozp.rig", JSON.stringify({ v: Object.fromEntries(FIELDS.map((k) => [k, $(k).value])), px: $("pxGap").checked, curvC: $("curvC").checked, curvS: $("curvS").checked })); } catch {} }
+function loadRig() { try { const r = JSON.parse(localStorage.getItem("ozp.rig")); if (!r) return false; for (const k of FIELDS) $(k).value = r.v[k] ?? ""; $("pxGap").checked = !!r.px; $("curvC").checked = !!r.curvC; $("curvS").checked = !!r.curvS; presetNote = "Your measurements, saved on this computer."; return true; } catch { return false; } }
+$("form").addEventListener("input", () => { $("presetZuka").setAttribute("aria-pressed", "false"); presetNote = "Measurements entered by you."; $("exampleNote").textContent = T(presetNote); saveRig(); render(); });
+$("form").addEventListener("submit", (e) => e.preventDefault());
+
+// Ângulo pela distância entre as pontas de fora do esquerdo e do direito (laterais simétricos):
+// pontas = caixa do central + 2 × caixa do lateral × cos(ângulo). As caixas vêm das fichas (Detetar monitores) ou de cima.
+function caseWidths() {
+  let a = parseFloat($("tA").value), b = parseFloat($("tB").value), est = false;
+  const g = parseFloat($("gap").value) || 0;
+  if (!(a > 0)) { const w = parseFloat($("wC").value); if (w > 0) { a = ($("curvC").checked && parseFloat($("rC").value) ? E.chordFromArc(w, parseFloat($("rC").value))[0] : w) + g; est = true; } }
+  if (!(b > 0)) { const w = (parseFloat($("wL").value) + parseFloat($("wR").value)) / 2 || parseFloat($("wL").value) || parseFloat($("wR").value); if (w > 0) { b = w + g; est = true; } }
+  return [a, b, est];
+}
+function spanAngle(write) {
+  const d = parseFloat($("tD").value);
+  if (!(d > 0)) { $("tDOut").textContent = ""; return null; }
+  const [a, b, est] = caseWidths();
+  if (!(a > 0 && b > 0)) { $("tDOut").textContent = T("Enter the monitor widths first (or use Detect monitors)."); return null; }
+  const c = (d - a) / (2 * b);
+  if (c > 1 || c < -0.2) { $("tDOut").textContent = T("This distance does not fit these monitors. Check it."); return null; }
+  const v = (Math.acos(c) * 180) / Math.PI, u = (180 / Math.PI) / (2 * b * Math.sqrt(Math.max(1e-6, 1 - c * c)));
+  $("tDOut").textContent = F("Angle of each side: {0}° (±{1}° per mm of error). Cases: center {2} mm, sides {3} mm.", f1(v), u.toFixed(2).replace(".", lang === "en" ? "." : ","), f1(a), f1(b)) + (est ? " " + T("Case widths estimated from the visible area plus the gap. Detect monitors gives the exact ones.") : "");
+  if (write) { $("angL").value = $("angR").value = v.toFixed(1); }
+  return v;
+}
+$("tD").addEventListener("input", (e) => { e.stopPropagation(); if (spanAngle(true) != null) $("form").dispatchEvent(new Event("input")); else saveRig(); });
+$("copy").addEventListener("click", async () => {
+  if (!current) return;
+  try { await navigator.clipboard.writeText(current.text); $("copy").textContent = T("Copied"); } catch { $("copy").textContent = T("Select and copy by hand"); }
+  setTimeout(() => ($("copy").textContent = T("Copy values")), 1800);
+});
+
+// ---------------- Servidor local (OZPanorama.exe) ----------------
+const TOKEN = document.querySelector('meta[name="ozp-token"]')?.content || "";
+class ApiError extends Error { constructor(j) { super(j.error || "error"); this.code = j.code; this.detail = j.detail; } }
+const API = async (path, body) => {
+  const headers = { "X-OZP-Token": TOKEN };
+  const r = await fetch(path, body ? { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body) } : { headers });
+  let j; try { j = await r.json(); } catch { throw new ApiError({ error: r.statusText }); }
+  if (!r.ok || (j.ok === false && !("status" in j))) throw new ApiError(j);
+  return j;
+};
+// Mensagens do servidor por código, traduzidas; o detalhe técnico fica para o relatório.
+const CODE_MSG = {
+  running: "The game is open. Close it (exit through the game menu) and try again: the game may rewrite its settings when it exits.",
+  changed: "The settings file changed after the preview (maybe the game or another program). Nothing was changed. Check the changes again.",
+  stale: "The preview is no longer valid. Check the changes again before applying.",
+  locked: "The file is being used by another program (probably the game). Close it and try again.",
+  perm: "Windows does not allow changing the settings file. Check that it is not read-only.",
+  missing: "The game settings were not found. Open the game once and exit through its menu.",
+  "msfs-windows": "MSFS does not have the two extra windows yet. In the simulator's multi-window options, create 2 extra windows, put each one on its monitor in full screen and exit through the menu. Nothing was changed.",
+  format: "The settings file has an unexpected format. For safety nothing was changed.",
+  encoding: "The file format is not recognised safely; nothing was changed.",
+  backup: "The backup could not be created or checked. Nothing was changed.",
+  verify: "The check of the new file failed; nothing was changed.",
+  "not-validated": "Automatic apply for this game has not been validated. Copy the values by hand.",
+  input: "The calculated values are not valid. Check the measurements.",
+  "changed-after": "At least one file was changed after OZPanorama (by you or by the game).",
+  "no-backup": "The backup for this change has not been created yet. Press Apply again.",
+};
+let lastError = null;
+const errText = (e) => { const m = e.code && CODE_MSG[e.code] ? T(CODE_MSG[e.code]) : e.message; lastError = `${e.code || ""} ${e.message}${e.detail ? " | " + e.detail : ""}`; return m; };
+
+async function refreshInfo() {
+  try { appInfo = await API("/api/info"); } catch { appInfo = null; }
+  document.querySelectorAll(".appOnly").forEach((e) => (e.hidden = !appInfo));
+  if (appInfo) {
+    $("ver").textContent = "Beta " + String(appInfo.version).replace(/-beta$/, "");
+    const wide = [...appInfo.screens].sort((a, b) => b.w - a.w)[0];
+    $("screensNow").textContent = wide ? F("Screen detected now: {0} × {1}", wide.w, wide.h) : "";
+  }
+  return appInfo;
+}
+
+// ---------------- Pré-visualização (o que vai mudar, lido dos ficheiros reais) ----------------
+let pv = null, pvTimer = null, pvSeq = 0, msfsLeft = null, busy = false;
+function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(loadPreview, 250); }
+function canApplyHere() {
+  const info = appInfo && appInfo.games.find((x) => x.id === game);
+  return info && info.canApply;
+}
+async function loadPreview() {
+  if (busy) return;
+  const seq = ++pvSeq;
+  pv = null;
+  if (!appInfo || !current || current.game !== game || !canApplyHere()) { renderPreview(); return; }
+  const values = { ...current.values };
+  if (game === "msfs") values.leftWindow = msfsLeft ?? "0";
+  try {
+    const r = await API("/api/preview", { game, values });
+    if (seq !== pvSeq) return;
+    pv = { ...r, sentFor: current, leftChosen: game !== "msfs" || msfsLeft != null };
+  } catch (e) { if (seq !== pvSeq) return; pv = { error: errText(e) }; }
+  renderPreview();
+}
+function renderPreview() {
+  if (!$("apply")) return;
+  const g = GAMES.find((x) => x.k === game), info = appInfo && appInfo.games.find((x) => x.id === game);
+  $("offline").hidden = !!appInfo;
+  $("offline").textContent = T("Calculation only: open OZPanorama.exe to apply automatically. You can copy the values in the technical details.");
+  $("notValidated").hidden = !(appInfo && info && !info.canApply);
+  $("notValidated").textContent = T(CODE_MSG["not-validated"]);
+  $("apply").textContent = F("Apply to {0}", g.k === "msfs" ? "MSFS 2024" : g.name);
+  $("backupNote").hidden = !appInfo;
+  let html = "", al = "", ok = false;
+  $("msfsWin").hidden = true;
+  if (!current) al = `<div class="alert err">${esc(T("Fix the measurements in step 1 first."))}</div>`;
+  else if (pv && pv.error) al = `<div class="alert err">${esc(pv.error)}</div>`;
+  else if (pv) {
+    if (game === "msfs" && pv.info && pv.info.length === 2) {
+      const btn = (w) => `<button type="button" data-w="${w}" aria-pressed="${String(msfsLeft === String(w))}">${esc(F("Window {0} · monitor {1}", w + 1, pv.info[w].Monitor ?? "?"))}${msfsLeft === String(w) ? ` <b class="mid">(${esc(T("left"))})</b>` : ""}</button>`;
+      $("msfsWin").innerHTML = `<div><b>${esc(T("Which extra window is on the left?"))}</b><p class="note">${esc(T("Read from your UserCfg.opt. OZPanorama does not change the monitor numbers."))}</p></div><div class="choice">${btn(0)}${btn(1)}</div>`;
+      $("msfsWin").hidden = false;
+      $("msfsWin").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { msfsLeft = b.dataset.w; loadPreview(); }));
+    }
+    const keyName = (k) => { const m = /^WindowCustom(\d)\.CameraDegRotationAdd$/.exec(k); return m ? `${F("Window {0} rotation", +m[1] + 1)}<div class="note mono" style="font-size:12px">${esc(k)}</div>` : k === "(ficheiro inteiro)" ? esc(T("whole file")) : esc(k); };
+    const rows = pv.changes.map((c) => `<tr><td class="note">${esc(c.ficheiro)}</td><td style="word-break:break-word">${keyName(c.chave)}</td><td class="${c.muda ? "old" : "same"}">${esc(c.atual)}</td><td class="${c.muda ? "new" : "same"}">${c.muda ? esc(c.novo) : esc(T("no change"))}</td></tr>`).join("");
+    html = `<div class="diff"><table><thead><tr><th>${esc(T("File"))}</th><th>${esc(T("Setting"))}</th><th>${esc(T("Current"))}</th><th>${esc(T("New"))}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="note">${pv.files.map((f) => `${esc(f.caminho)} · ${esc(f.codificacao)}`).join("<br>")}</p>`;
+    al = pv.warnings.map((w) => `<div class="alert">${esc(w)}</div>`).join("");
+    if (pv.running) al += `<div class="alert">${esc(T(CODE_MSG.running))}</div>`;
+    if (!pv.leftChosen) al += `<div class="alert info">${esc(T("Choose which window is on the left to continue."))}</div>`;
+    ok = !pv.running && pv.leftChosen && pv.changes.some((c) => c.muda);
+    if (!pv.changes.some((c) => c.muda)) al += `<div class="alert ok">${esc(T("The game already has these values. Nothing to apply."))}</div>`;
+  }
+  $("preview").innerHTML = html; $("pvAlerts").innerHTML = al;
+  $("apply").disabled = busy || !appInfo || !ok;
+}
+
+// ---------------- Aplicar: backup → confirmação → escrita → verificação ----------------
+let modalResolve = null;
+function ask(title, text, extra, yes, no) {
+  $("modalTitle").textContent = title; $("modalText").innerHTML = text; $("modalExtra").innerHTML = extra || "";
+  $("modalYes").textContent = yes; $("modalNo").textContent = no; $("modal").hidden = false; $("modalNo").focus();
+  return new Promise((ok) => (modalResolve = ok));
+}
+const closeModal = (v) => { $("modal").hidden = true; if (modalResolve) { const r = modalResolve; modalResolve = null; r(v); } };
+$("modalYes").addEventListener("click", () => closeModal(true));
+$("modalNo").addEventListener("click", () => closeModal(false));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("modal").hidden) closeModal(false); });
+
+$("apply").addEventListener("click", async () => {
+  // B1: só se aplica a pré-visualização da configuração válida atual.
+  if (!pv || !pv.previewId || !current || pv.sentFor !== current || !pv.leftChosen) { schedulePreview(); return; }
+  const g = GAMES.find((x) => x.k === game), id = pv.previewId;
+  busy = true; renderPreview();
+  $("applyMsg").innerHTML = `<div class="alert info">${esc(T("Creating and checking the backup…"))}</div>`;
+  let bk;
+  try { bk = await API("/api/prepare", { previewId: id }); }
+  catch (e) { busy = false; $("applyMsg").innerHTML = `<div class="alert err"><b>${esc(T("Not applied:"))}</b> ${esc(errText(e))}</div>`; schedulePreview(); return; }
+  $("applyMsg").innerHTML = "";
+  const n = pv.changes.filter((c) => c.muda).length;
+  const yes = await ask(T("Confirm changes"),
+    esc(F("You are about to change the settings of {0}. A backup of the original files has been created and validated. Do you want to continue?", g.name)).replace(esc(g.name), `<b>${esc(g.name)}</b>`),
+    esc(F("{0} setting(s) · backup {1}", n, bk.backup)), T("Yes, apply"), T("Cancel"));
+  if (!yes) {
+    try { await API("/api/cancel", { previewId: id }); } catch {}
+    busy = false; $("applyMsg").innerHTML = `<div class="alert info">${esc(T("Cancelled. Nothing was changed; the backup was kept."))}</div>`; schedulePreview(); return;
+  }
+  $("applyMsg").innerHTML = `<div class="alert info">${esc(T("Applying…"))}</div>`;
+  try {
+    const r = await API("/api/apply", { previewId: id, confirm: true });
+    if (r.ok) $("applyMsg").innerHTML = `<div class="alert ok"><b>${esc(T("Applied and checked."))}</b> ${esc(F("Backup {0}. You can restore it in \"Backups and restore\".", r.backup))}</div>`;
+    else if (r.status === "falhou-reposto") { lastError = (r.detail || []).join(" | "); $("applyMsg").innerHTML = `<div class="alert err"><b>${esc(T("Could not apply."))}</b> ${esc(T("The original files were restored and checked. Nothing changed."))}</div>`; }
+    else { lastError = (r.detail || []).join(" | "); $("applyMsg").innerHTML = `<div class="alert err"><b>${esc(T("Could not apply or restore automatically."))}</b> ${esc(F("The originals are saved in backup {0}. Use \"Backups and restore\" or open the backup folder.", r.backup))}</div>`; }
+  } catch (e) { $("applyMsg").innerHTML = `<div class="alert err"><b>${esc(T("Not applied:"))}</b> ${esc(errText(e))}</div>`; }
+  busy = false; await refreshInfo(); buildGames(); loadPreview();
+});
+
+// ---------------- Backups e restauro ----------------
+const ST = { original: "original", aplicado: "applied by OZPanorama", alterado: "changed afterwards", ausente: "missing", ilegivel: "unreadable" };
+const OPS = { aplicar: "Apply", cancelado: "cancelled" };
+async function loadBackups() {
+  if (!appInfo) return;
+  $("bkList").innerHTML = `<p class="note">${esc(T("Loading…"))}</p>`;
+  let r; try { r = await API("/api/backups"); } catch (e) { $("bkList").innerHTML = `<div class="alert err">${esc(errText(e))}</div>`; return; }
+  if (!r.backups.length) { $("bkList").innerHTML = `<p class="note">${esc(T("No backups yet. They are created every time OZPanorama applies a configuration."))}</p>`; return; }
+  $("bkList").innerHTML = r.backups.map((b, i) => {
+    const op = b.operacao && b.operacao.startsWith("antes-de-restaurar") ? T("before restoring") : T("before applying");
+    const status = { aplicado: T("applied"), cancelado: T("cancelled (nothing written)"), "cancelado-alterado": T("cancelled (file changed)"), "falhou-reposto": T("failed, originals restored"), "falhou-sem-reposicao": T("failed, restore by hand"), guardado: T("saved"), criado: T("created") }[b.estado] || b.estado;
+    const files = b.ficheiros.map((f) => `${esc(f.nome)}${f.existia ? "" : " (" + esc(T("did not exist")) + ")"}<span class="st ${esc(f.situacao)}">${esc(T(ST[f.situacao] || f.situacao || ""))}</span>`).join(" · ");
+    const allOriginal = b.ficheiros.every((f) => f.situacao === "original");
+    return `<div class="bk"><div><b>${esc(b.nomeJogo || b.jogo)}</b> · ${esc(b.criado || "")} <span class="note">· ${esc(op)} · ${esc(status)}</span><div class="note mono">${esc(b.id)}</div></div>
+      <div class="row"><button type="button" class="btn ghost" data-open="${esc(b.id)}">${esc(T("Open folder"))}</button><button type="button" class="btn" data-restore="${i}" ${allOriginal ? "disabled" : ""}>${esc(allOriginal ? T("Already equal") : T("Restore"))}</button></div>
+      <div class="files">${files}</div></div>`;
+  }).join("");
+  $("bkList").querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", async () => { try { await API("/api/backups/open", { id: b.dataset.open }); } catch (e) { $("bkMsg").innerHTML = `<div class="alert err">${esc(errText(e))}</div>`; } }));
+  $("bkList").querySelectorAll("[data-restore]").forEach((b) => b.addEventListener("click", () => restore(r.backups[+b.dataset.restore])));
+}
+async function restore(b) {
+  const changedAfter = b.ficheiros.some((f) => f.situacao === "alterado");
+  let ok = await ask(T("Restore backup"), esc(F("Restore the files of {0} to how they were on {1}? The current state will be saved in a new backup first.", b.nomeJogo || b.jogo, b.criado)), "", T("Yes, restore"), T("Cancel"));
+  if (!ok) return;
+  if (changedAfter) {
+    ok = await ask(T("Files changed afterwards"), esc(T("At least one file was changed after OZPanorama (by you or by the game). Restoring replaces those changes; they will be kept in the new backup. Replace anyway?")), "", T("Replace"), T("Cancel"));
+    if (!ok) return;
+  }
+  $("bkMsg").innerHTML = `<div class="alert info">${esc(T("Restoring…"))}</div>`;
+  try {
+    const r = await API("/api/restore", { id: b.id, confirm: true, acceptChanged: changedAfter });
+    $("bkMsg").innerHTML = r.ok ? `<div class="alert ok"><b>${esc(T("Restored and checked."))}</b> ${esc(r.safetyBackup ? F("The previous state was saved in backup {0}.", r.safetyBackup) : T("The files were already equal to the backup."))}</div>`
+      : `<div class="alert err"><b>${esc(T("The restore did not finish."))}</b> ${esc(F("The previous state is in backup {0}; you can restore it from the list or open its folder.", r.safetyBackup))}</div>`;
+  } catch (e) { $("bkMsg").innerHTML = `<div class="alert err">${esc(errText(e))}</div>`; }
+  await refreshInfo(); loadBackups();
+}
+$("bkRefresh").addEventListener("click", loadBackups);
+
+// ---------------- Reportar problema ----------------
+function uiSummary() {
+  const rigTxt = FIELDS.map((k) => `${k}=${$(k).value}`).join(" ") + ` px=${$("pxGap").checked} curvC=${$("curvC").checked} curvS=${$("curvS").checked}`;
+  return { rig: rigTxt, result: current ? `${current.game}\n${current.text}` : "(sem configuração válida)", lastError };
+}
+$("repMake").addEventListener("click", async () => {
+  const desc = $("repDesc").value.trim();
+  let body = `### ${T("What happened")}\n${desc || "-"}\n\n### Língua da interface\n${lang}\n\n`;
+  if (appInfo) {
+    try { const r = await API("/api/report", { ui: uiSummary(), includeLog: $("repLog").checked }); body += r.text; }
+    catch (e) { body += `(${errText(e)})`; }
+  } else {
+    const u = uiSummary(); body += `### Monitores e posição\n\`\`\`\n${u.rig}\n\`\`\`\n### Resultado\n\`\`\`\n${u.result}\n\`\`\``;
+  }
+  $("repText").value = body; $("repOpen").disabled = !appInfo; $("repCopy").disabled = false;
+  $("repMsg").textContent = T("Read the report before sending. You can delete anything you don't want to share.");
+});
+$("repOpen").addEventListener("click", async () => {
+  const title = "[Beta] " + ($("repDesc").value.trim().split("\n")[0].slice(0, 80) || T("Problem in OZPanorama"));
+  try { await API("/api/open-issue", { title, text: $("repText").value }); $("repMsg").textContent = T("GitHub opened in your browser. Check it and press \"Submit new issue\" (you need a GitHub account)."); }
+  catch (e) { $("repMsg").textContent = errText(e); }
+});
+$("repCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("repText").value); $("repMsg").textContent = T("Copied"); } catch { $("repText").select(); } });
+
+// ---------------- Detetar monitores (só leitura) ----------------
+// Fichas oficiais (mm): área visível, raio, largura total da caixa (para a moldura e o ângulo pelas pontas).
+const CATALOG = [
+  { names: ["HP X27c", "X27c"], area: [596.9, 336.3], radius: 1500, total_w: 611.3, src: "HP" },
+  { names: ["HP OMEN 27 G2", "OMEN 27 G2", "OMEN 27"], total_w: 613.6, src: "HP" },
+  { names: ["AOC 27G4", "27G4"], total_w: 613.9, src: "AOC" },
+];
+const catFind = (name) => CATALOG.find((c) => c.names.some((n) => (name || "").toUpperCase().includes(n.toUpperCase())));
+const COMMON_W = [3840, 3440, 2560, 1920, 1680, 1600, 1366, 1280];
+const slotMon = {};      // lugar (L, C, R) → monitor detetado
+let surroundGapPx = null; // píxeis escondidos por junção pelo Surround
+function chordOf(k) {
+  const w = parseFloat($("w" + k).value); if (!(w > 0)) return null;
+  const r = k === "C" ? ($("curvC").checked && parseFloat($("rC").value)) : ($("curvS").checked && parseFloat($("rS").value));
+  return r ? E.chordFromArc(w, r)[0] : w;   // num curvo, a caixa mede-se em linha reta
+}
+function fillFromSlots() {
+  const cat = (k) => slotMon[k] && slotMon[k].cat;
+  // Larguras das caixas para o ângulo pelas pontas.
+  if (cat("C") && cat("C").total_w) $("tA").value = cat("C").total_w;
+  const sides = ["L", "R"].map((k) => cat(k) && cat(k).total_w).filter(Boolean);
+  if (sides.length) $("tB").value = (sides.reduce((x, y) => x + y, 0) / sides.length).toFixed(1);
+  // Folga entre áreas visíveis: pela correção do Surround (o que o driver esconde) ou pelas molduras das fichas.
+  const wc = parseFloat($("wC").value), xc = parseFloat($("xC").value);
+  if (surroundGapPx && wc > 0 && xc > 0) {
+    $("gap").value = ((surroundGapPx * wc) / xc).toFixed(1);
+    $("gapNote").textContent = F("Gap from the Surround bezel correction: {0} px × {1} mm/px = {2} mm.", surroundGapPx, (wc / xc).toFixed(3), $("gap").value);
+  } else {
+    const bz = (k) => (cat(k) && cat(k).total_w && chordOf(k) ? (cat(k).total_w - chordOf(k)) / 2 : null);
+    const c = bz("C"), sd = ["L", "R"].map(bz).filter((x) => x != null);
+    if (c != null && sd.length) {
+      const g = c + sd.reduce((x, y) => x + y, 0) / sd.length; $("gap").value = g.toFixed(1);
+      $("gapNote").textContent = F("Gap from the manufacturers' sheets: center bezel {0} mm + side bezel {1} mm = {2} mm, with the cases touching.", f1(c), f1(g - c), f1(g));
+    }
+  }
+  spanAngle(true);
+  saveRig(); render();
+}
+function assignMon(m, k) {
+  for (const s of ["L", "C", "R"]) if (slotMon[s] === m) delete slotMon[s];
+  const cat = catFind(m.name); slotMon[k] = { ...m, cat };
+  let w = m.w_mm, h = m.h_mm;
+  if (cat && cat.area) [w, h] = cat.area;
+  $("w" + k).value = w; $("h" + k).value = h;
+  if (cat && cat.radius) { if (k === "C") { $("curvC").checked = true; $("rC").value = cat.radius; } else { $("curvS").checked = true; $("rS").value = cat.radius; } }
+  if (!$("diag").value) $("diag").value = Math.round(Math.hypot(m.w_mm, m.h_mm) / 25.4);
+}
+$("detect").addEventListener("click", async () => {
+  const box = $("detOut"); box.hidden = false; box.innerHTML = `<p class="note">${esc(T("Detecting…"))}</p>`;
+  let d; try { d = await API("/api/monitors"); } catch (e) { box.innerHTML = `<div class="alert err">${esc(errText(e))}</div>`; return; }
+  const scr = d.screens || [], mons = (d.monitors || []).filter((m) => m.w_mm);
+  let resNote = ""; surroundGapPx = null;
+  const wide = scr.find((s) => s.w >= 3 * 1200);
+  if (wide) {
+    const c = COMMON_W.find((w) => 3 * w <= wide.w && (wide.w - 3 * w) % 2 === 0 && (wide.w - 3 * w) / 2 <= 200);
+    if (c) {
+      for (const k of ["L", "C", "R"]) { $("x" + k).value = c; $("y" + k).value = wide.h; }
+      const gp = (wide.w - 3 * c) / 2; $("pxGap").checked = gp > 0; if (gp > 0) surroundGapPx = gp;
+      resNote = F("Surround detected: {0}×{1} = 3 × {2} + {3} px hidden per join.", wide.w, wide.h, c, gp);
+    }
+  } else if (scr.length) {
+    const s3 = [...scr].sort((a, b) => a.x - b.x);
+    resNote = T("Separate screens (left → right):") + " " + s3.map((s) => `${s.w}×${s.h}`).join(", ");
+    if (s3.length >= 3) { const big = s3.filter((s) => s.w === s3[Math.floor(s3.length / 2)].w && s.h === s3[Math.floor(s3.length / 2)].h); if (big.length >= 3) for (const k of ["L", "C", "R"]) { $("x" + k).value = big[0].w; $("y" + k).value = big[0].h; } }
+  }
+  // Lugares automáticos: o monitor curvo das fichas vai ao centro, os outros das fichas aos lados; o resto escolhe-se à mão.
+  for (const k of ["L", "C", "R"]) delete slotMon[k];
+  const known = mons.filter((m, i) => catFind(m.name) && mons.findIndex((x) => catFind(x.name) === catFind(m.name)) === i);
+  const center = known.find((m) => catFind(m.name).radius) || (known.length === 3 ? known[1] : null);
+  let auto = false;
+  if (center && known.length >= 3) {
+    const sides = known.filter((m) => m !== center).slice(0, 2);
+    assignMon(center, "C"); assignMon(sides[0], "L"); assignMon(sides[1], "R"); auto = true;
+  }
+  const slotOf = (m) => ["L", "C", "R"].find((k) => slotMon[k] && slotMon[k].name === m.name && slotMon[k].w_mm === m.w_mm);
+  const draw = () => {
+    box.innerHTML = `<div class="alert info">${esc(resNote)}</div>` + (mons.length ? `<div class="panel stack"><b>${esc(auto ? T("Monitors placed automatically. Change them if they are not in the right place:") : T("Assign each monitor to its place:"))}</b>` + mons.map((m, n) => {
+      const cat = catFind(m.name), sl = slotOf(m);
+      return `<div class="row"><span>${esc(m.name || "Monitor")} · ${m.w_mm}×${m.h_mm} mm <span class="note">(${esc(cat ? F("{0} sheet: case {1} mm", cat.src, f1(cat.total_w)) : m.source || "")}${m.present === false ? " · " + esc(T("not connected now?")) : ""})</span></span>` +
+        ["L", "C", "R"].map((k) => `<button class="btn ghost" type="button" data-mon="${n}" data-slot="${k}" aria-pressed="${sl === k}">${esc(T({ L: "Left", C: "Center", R: "Right" }[k]))}</button>`).join("") + "</div>";
+    }).join("") +
+      `<p class="note">${esc(T("EDID gives the size in whole millimetres (sometimes only centimetres): a tape measure is still more accurate. On a curved monitor, EDID usually gives the chord, not the arc."))}</p></div>`
+      : `<p class="note">${esc(T("The sizes could not be read (EDID). Measure with a tape measure."))}</p>`);
+    box.querySelectorAll("[data-mon]").forEach((b) => b.addEventListener("click", () => { assignMon(mons[+b.dataset.mon], b.dataset.slot); fillFromSlots(); draw(); }));
+  };
+  draw(); fillFromSlots();
+  presetNote = "Measurements entered by you."; $("exampleNote").textContent = T(presetNote); $("presetZuka").setAttribute("aria-pressed", "false");
+});
+
+// ---------------- NVIDIA Surround: perfis gravados pelo próprio driver, ligados com confirmação ----------------
+let surBusy = false;
+async function refreshSurround() {
+  let s; try { s = await API("/api/surround"); } catch (e) { $("surPanel").hidden = false; $("surState").textContent = errText(e); return null; }
+  $("surPanel").hidden = false;
+  $("surState").textContent = s.available ? F("Now: {0}", s.current.text) : F("NVIDIA Surround not available: {0}", s.error || T("no NVIDIA card?"));
+  const pr = s.profiles || {}, has = (k) => pr[k] && !pr[k].error;
+  const row = (k, label) => { const p = pr[k]; return `<div><b>${esc(label)}:</b> ${esc(!p ? T("not saved yet") : p.error ? p.error : F("{0} · saved {1}", p.text, p.saved))}${p && p.active ? " · <b>" + esc(T("active")) + "</b>" : ""}</div>`; };
+  $("surProfiles").innerHTML = row("com", T("With Surround")) + row("sem", T("Without Surround"));
+  $("surOn").disabled = surBusy || !s.available || !has("com");
+  $("surOff").disabled = surBusy || !s.available || !has("sem") || pr.sem.active;
+  $("surSaveOn").disabled = $("surSaveOff").disabled = surBusy || !s.available;
+  if (!has("com") || !has("sem")) $("surSetup").open = true;
+  return s;
+}
+async function surSave(profile) {
+  $("surMsg").textContent = T("Saving…");
+  try { const r = await API("/api/surround/save", { profile }); $("surMsg").textContent = F("Saved: {0}", r.text); }
+  catch (e) { $("surMsg").textContent = errText(e); }
+  refreshSurround();
+}
+async function surApply(profile) {
+  surBusy = true; $("surOn").disabled = $("surOff").disabled = true;
+  $("surMsg").textContent = T("Changing the screens… The monitors may flicker.");
+  try {
+    const { id } = await API("/api/surround/apply", { profile });
+    $("surKeep").onclick = async () => { $("surKeep").disabled = true; try { await API("/api/surround/keep", { id }); $("surMsg").textContent = T("Confirmed. Finishing…"); } catch (e) { $("surMsg").textContent = errText(e); } };
+    for (let i = 0; i < 45; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      let s; try { s = await API("/api/surround"); } catch { continue; }
+      if (s.last && s.last.id === id && s.last.waiting) {
+        $("surKeep").hidden = false; if (!$("surKeep").disabled) $("surMsg").textContent = T("Are the screens OK? Press “Keep these screens” (or Keep in the Windows window). With no answer in 20 s, OZPanorama puts back the previous setup.");
+        continue;
+      }
+      if (s.last && s.last.id === id) { $("surMsg").textContent = s.last.message; break; }
+      if (i === 44) $("surMsg").textContent = T("No answer from the screen change. Check the state above.");
+    }
+  } catch (e) { $("surMsg").textContent = errText(e); }
+  $("surKeep").hidden = true; $("surKeep").disabled = false;
+  surBusy = false; await refreshSurround(); await refreshInfo();
+}
+$("surSaveOn").addEventListener("click", () => surSave("com"));
+$("surSaveOff").addEventListener("click", () => surSave("sem"));
+$("surOn").addEventListener("click", () => surApply("com"));
+$("surOff").addEventListener("click", () => surApply("sem"));
+
+$("quit").addEventListener("click", async () => { try { await API("/api/quit", {}); } catch {} document.body.innerHTML = `<p style="padding:40px;font-size:18px">${esc(T("OZPanorama closed. You can close this window."))}</p>`; });
+
+// Estado dos jogos (aberto/fechado) atualizado sozinho, e sinal de vida para o servidor.
+setInterval(async () => {
+  if (!appInfo || busy) return;
+  const before = JSON.stringify(appInfo.games.map((g) => [g.id, g.running, g.files.map((f) => f.existe)]));
+  await refreshInfo();
+  if (appInfo && JSON.stringify(appInfo.games.map((g) => [g.id, g.running, g.files.map((f) => f.existe)])) !== before) { buildGames(); if (step === 2) loadPreview(); }
+}, 5000);
+
+// ---------------- Início ----------------
+lang = pickLang(); T = makeT(lang);
+if (!loadRig()) { for (const [id, v] of Object.entries(EMPTY)) $(id).value = v; }
+refreshInfo().then(() => {
+  let hasRig = false; try { hasRig = !!localStorage.getItem("ozp.rig"); } catch {}
+  if (!appInfo && !hasRig) applyPreset("zuka");   // sem o programa (página de demonstração): mostra o exemplo
+  setLang(lang); $("exampleNote").textContent = T(presetNote); go(1);
+  if (appInfo) refreshSurround();
+});
+</script>
+</body>
+</html>

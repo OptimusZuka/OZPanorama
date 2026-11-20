@@ -1,0 +1,27 @@
+name: Beta problem
+description: Something did not work in OZPanorama
+labels: [beta]
+body:
+  - type: markdown
+    attributes:
+      value: "Use the **Report a problem** button inside the app: it prepares this text for you (no personal folder names or settings files). Review it before sending. You can write in English or Portuguese."
+  - type: textarea
+    id: o-que
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you saw in the game.
+    validations:
+      required: true
+  - type: dropdown
+    id: jogo
+    attributes:
+      label: Simulator
+      options: [Microsoft Flight Simulator 2024, Euro Truck Simulator 2, American Truck Simulator, iRacing, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: relatorio
+    attributes:
+      label: App report
+      description: Paste the text from "Report a problem" here.
+      render: markdown
