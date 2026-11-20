@@ -1,0 +1,51 @@
+# Publishes a release: push the commit to the 'lancamento' branch (or Actions > release > Run workflow).
+# The vX.Y.Z tag (same as AppInfo.Version in src/Core.cs) is created by GitHub.
+# The release (marked as pre-release/beta) contains the portable zip and SHA256SUMS.txt.
+name: release
+
+on:
+  push:
+    branches: [lancamento]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and test
+        shell: cmd
+        run: build.cmd test
+
+      - name: Portable zip and SHA-256
+        shell: pwsh
+        run: |
+          $v = [regex]::Match((Get-Content src\Core.cs -Raw), 'Version = "([^"]+)"').Groups[1].Value
+          if (-not $v) { throw "Version not found in src/Core.cs" }
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          New-Item -ItemType Directory -Force dist\OZPanorama | Out-Null
+          Copy-Item build\OZPanorama.exe, README.md, docs\LIMITATIONS.md dist\OZPanorama\
+          Compress-Archive -Path dist\OZPanorama -DestinationPath "dist\OZPanorama-$v.zip"
+          $h = (Get-FileHash "dist\OZPanorama-$v.zip" -Algorithm SHA256).Hash.ToLower()
+          Set-Content dist\SHA256SUMS.txt "$h  OZPanorama-$v.zip" -Encoding ascii
+
+      - name: Release notes
+        shell: pwsh
+        run: |
+          $v = $env:VERSION
+          $sums = (Get-Content dist\SHA256SUMS.txt -Raw).Trim()
+          $notes = (Get-Content .github\RELEASE_NOTES.md -Raw).Replace('{VERSION}', $v).Replace('{SHA256SUMS}', $sums)
+          Set-Content -Path notes.md -Value $notes -Encoding utf8
+
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = $env:VERSION
+          gh release create "v$v" --target "${{ github.sha }}" --prerelease --title "OZPanorama $v" --notes-file notes.md `
+            "dist\OZPanorama-$v.zip" "dist\SHA256SUMS.txt"

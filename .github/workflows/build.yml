@@ -1,0 +1,25 @@
+# Builds OZPanorama.exe and runs the tests of the write core on a clean Windows machine.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test
+        shell: cmd
+        run: build.cmd test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OZPanorama-${{ github.sha }}
+          path: build/OZPanorama.exe
+          if-no-files-found: error
