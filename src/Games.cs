@@ -1,4 +1,4 @@
-// OZPanorama · Zuka Force — integrações com os simuladores e operações Aplicar / Restaurar (Beta 0.1)
+// OZPanorama · Zuka Force — integrações com os simuladores e operações Aplicar / Restaurar (Beta 0.1.1)
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -229,6 +229,53 @@ namespace OZPanorama
         }
     }
 
+    // ---------------- RaceRoom ----------------
+    // Validado no rig a 21/11 (Surround com correção de molduras, 56°, 71 cm). O menu "Field of view" grava estes valores
+    // no graphics_options.xml, em centímetros e graus. Só se escrevem as chaves de triplos; o resto do ficheiro fica igual.
+    public class RaceRoom : Game
+    {
+        public string Root = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        public RaceRoom() { Id = "raceroom"; Name = "RaceRoom Racing Experience"; Status = "testado"; Processes = new[] { "RRRE64", "RRRE" }; }
+        public override string[] Paths() { return new[] { System.IO.Path.Combine(Root, "My Games", "SimBin", "RaceRoom Racing Experience", "UserData", "graphics_options.xml") }; }
+
+        // chave, mínimo, máximo (float32, cm ou graus)
+        static readonly object[][] Floats = {
+            new object[] { "distanceToScreen", 20.0, 400.0 },
+            new object[] { "screenSizeMiddle", 25.0, 400.0 }, new object[] { "screenSizeLeft", 25.0, 400.0 }, new object[] { "screenSizeRight", 25.0, 400.0 },
+            new object[] { "screenBezelMiddle", 0.0, 10.0 }, new object[] { "screenBezelLeft", 0.0, 10.0 }, new object[] { "screenBezelRight", 0.0, 10.0 },
+            new object[] { "screenAngleLeft", 0.0, 90.0 }, new object[] { "screenAngleRight", 0.0, 90.0 } };
+
+        static LineRule Rule(string key, string type, string val)
+        {
+            return new LineRule
+            {
+                Key = key,
+                Match = new Regex(@"^(\s*<" + Regex.Escape(key) + @" type=""" + type + @""">)([^<]*)(</" + Regex.Escape(key) + @">.*)$"),
+                Rewrite = m => m.Groups[1].Value + val + m.Groups[3].Value,
+                Current = m => m.Groups[2].Value, NewValue = val
+            };
+        }
+
+        public override Plan BuildPlan(Dictionary<string, object> v, Dictionary<string, Snapshot> snaps)
+        {
+            var path = Paths()[0];
+            if (!snaps[path].Exists) throw new OzError("missing", "Não encontrei o graphics_options.xml. Abra o RaceRoom uma vez e saia antes.", path);
+            var p = new Plan { Game = Id, GameName = Name };
+            var fp = new FilePlan { Path = path, Label = "graphics_options.xml" };
+            fp.Rules.Add(Rule("tripleScreen", "bool", "true"));
+            fp.Rules.Add(Rule("advancedFov", "bool", "true"));
+            fp.Rules.Add(Rule("tripleScreenSeparateSizes", "bool", Str(v, "tripleScreenSeparateSizes") == "true" ? "true" : "false"));
+            foreach (var k in Floats)
+            {
+                string key = (string)k[0];
+                double d = Num(v, key, (double)k[1], (double)k[2]);
+                fp.Rules.Add(Rule(key, "float32", d.ToString("F8", CultureInfo.InvariantCulture)));
+            }
+            p.Files.Add(fp);
+            return p;
+        }
+    }
+
     /// <summary>Integrações sem aplicação automática na Beta: só pré-visualização/cópia na interface.</summary>
     public class PreviewOnlyGame : Game
     {
@@ -245,6 +292,7 @@ namespace OZPanorama
             new ScsGame("ets2", "Euro Truck Simulator 2", "Euro Truck Simulator 2", "eurotrucks2", "testado"),
             new ScsGame("ats", "American Truck Simulator", "American Truck Simulator", "amtrucks", "testado"),   // testado pelo autor no rig (confirmado a 15/11), mesmo comportamento do ETS2
             new IRacing(),
+            new RaceRoom(),
             // AC e ACC ficam fora da Beta 0.1 (pedido do autor: só o que foi testado).
         };
         public static Game Get(string id)

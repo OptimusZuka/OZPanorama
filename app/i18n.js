@@ -1669,6 +1669,48 @@ export const ROWS = [
 "Larguras das caixas estimadas pela área visível mais a folga. Detectar monitores dá as exatas.",
 "Anchos de carcasa estimados por el área visible más la separación. Detectar monitores da los exactos.",
 "Largeurs des boîtiers estimées à partir de la zone visible plus l'écart. Détecter les écrans donne les valeurs exactes."
+],
+  [
+"File in Documents\\My Games\\SimBin\\RaceRoom Racing Experience\\UserData\\. Distance and screen sizes in centimetres. The game resolution should be the Surround area ({0}×{1}).",
+"Ficheiro em Documentos\\My Games\\SimBin\\RaceRoom Racing Experience\\UserData\\. Distância e tamanhos dos ecrãs em centímetros. A resolução do jogo deve ser a da área do Surround ({0}×{1}).",
+"Archivo en Documentos\\My Games\\SimBin\\RaceRoom Racing Experience\\UserData\\. Distancia y tamaños de pantalla en centímetros. La resolución del juego debe ser la del área de Surround ({0}×{1}).",
+"Fichier dans Documents\\My Games\\SimBin\\RaceRoom Racing Experience\\UserData\\. Distance et tailles d'écran en centimètres. La résolution du jeu doit être celle de la zone Surround ({0}×{1})."
+],
+  [
+"Turns on triple screen (multiview) and the advanced field of view: each screen gets its own image.",
+"Liga o triple screen (multiview) e o campo de visão avançado: cada tela tem a sua própria imagem.",
+"Activa la triple pantalla (multiview) y el campo de visión avanzado: cada pantalla tiene su propia imagen.",
+"Active le triple écran (multiview) et le champ de vision avancé : chaque écran a sa propre image."
+],
+  [
+"Writes the distance to the screen, the size of each screen and the side angles, in the game's own units (cm and degrees).",
+"Escreve a distância à tela, o tamanho de cada tela e os ângulos dos laterais, nas unidades do próprio jogo (cm e graus).",
+"Escribe la distancia a la pantalla, el tamaño de cada pantalla y los ángulos laterales, en las unidades del propio juego (cm y grados).",
+"Écrit la distance à l'écran, la taille de chaque écran et les angles latéraux, dans les unités du jeu (cm et degrés)."
+],
+  [
+"Bezels at 0: Surround already hides them (bezel correction), so they are not corrected twice.",
+"Molduras em 0: o Surround já as esconde (correção de moldura), para não corrigir duas vezes.",
+"Marcos a 0: Surround ya los oculta (corrección de marcos), para no corregirlos dos veces.",
+"Bordures à 0 : Surround les masque déjà (correction des bordures), pour ne pas les corriger deux fois."
+],
+  [
+"Writes the bezels from the gap between screens (not yet tested without Surround bezel correction).",
+"Escreve as molduras a partir da folga entre telas (ainda não testado sem a correção de moldura do Surround).",
+"Escribe los marcos a partir de la separación entre pantallas (aún no probado sin la corrección de marcos de Surround).",
+"Écrit les bordures à partir de l'écart entre écrans (pas encore testé sans la correction des bordures Surround)."
+],
+  [
+"Needs NVIDIA Surround (or AMD Eyefinity) turned on and the game set to the full Surround resolution.",
+"Precisa do NVIDIA Surround (ou AMD Eyefinity) ligado e do jogo na resolução completa do Surround.",
+"Necesita NVIDIA Surround (o AMD Eyefinity) activado y el juego en la resolución completa de Surround.",
+"Nécessite NVIDIA Surround (ou AMD Eyefinity) activé et le jeu dans la résolution complète du Surround."
+],
+  [
+"Needs Surround on · multiview",
+"Precisa do Surround · multiview",
+"Necesita Surround · multiview",
+"Surround requis · multiview"
 ]
 ];
 export function makeT(code) {
