@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="../../releases"><img src="https://img.shields.io/github/v/release/OptimusZuka/OZPanorama?include_prereleases&label=version&color=FFCC00&labelColor=111111" alt="version"></a>
+  <a href="../../releases"><img src="https://img.shields.io/github/downloads/OptimusZuka/OZPanorama/total?label=downloads&color=FFCC00&labelColor=111111" alt="downloads"></a>
   <img src="https://img.shields.io/badge/Windows-11-FFCC00?labelColor=111111" alt="Windows 11">
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20PT%20%7C%20ES%20%7C%20FR-FFCC00?labelColor=111111" alt="languages">
   <img src="https://img.shields.io/badge/price-free-FFCC00?labelColor=111111" alt="free">
