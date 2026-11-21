@@ -20,7 +20,7 @@ namespace OZPanorama
 {
     public static class AppInfo
     {
-        public const string Version = "0.1.1-beta";
+        public const string Version = "0.1.2-beta";
         public static string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OZPanorama");
         public static string BackupDir { get { return Path.Combine(DataDir, "backups"); } }
         public static void Log(string msg)

@@ -1,6 +1,6 @@
 # Publishes a release: push the commit to the 'lancamento' branch (or Actions > release > Run workflow).
 # The vX.Y.Z tag (same as AppInfo.Version in src/Core.cs) is created by GitHub.
-# The release (marked as pre-release/beta) contains the portable zip and SHA256SUMS.txt.
+# The release (marked as pre-release/beta) contains the installer, the portable zip and SHA256SUMS.txt.
 name: release
 
 on:
@@ -17,6 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { choco install innosetup --no-progress -y }
+
       - name: Build and test
         shell: cmd
         run: build.cmd test
@@ -31,7 +37,14 @@ jobs:
           Copy-Item build\OZPanorama.exe, README.md, docs\LIMITATIONS.md dist\OZPanorama\
           Compress-Archive -Path dist\OZPanorama -DestinationPath "dist\OZPanorama-$v.zip"
           $h = (Get-FileHash "dist\OZPanorama-$v.zip" -Algorithm SHA256).Hash.ToLower()
-          Set-Content dist\SHA256SUMS.txt "$h  OZPanorama-$v.zip" -Encoding ascii
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          $nv = ($v -replace "-.*", "") + ".0"
+          & $iscc "/DAppVersion=$v" "/DNumVersion=$nv" installer\OZPanorama.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+          $setup = "dist\OZPanorama_Setup_$v.exe"
+          if (-not (Test-Path $setup)) { throw "Installer not created" }
+          $hs = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          Set-Content dist\SHA256SUMS.txt @("$hs  OZPanorama_Setup_$v.exe", "$h  OZPanorama-$v.zip") -Encoding ascii
 
       - name: Release notes
         shell: pwsh
@@ -48,4 +61,4 @@ jobs:
         run: |
           $v = $env:VERSION
           gh release create "v$v" --target "${{ github.sha }}" --prerelease --title "OZPanorama $v" --notes-file notes.md `
-            "dist\OZPanorama-$v.zip" "dist\SHA256SUMS.txt"
+            "dist\OZPanorama_Setup_$v.exe" "dist\OZPanorama-$v.zip" "dist\SHA256SUMS.txt"

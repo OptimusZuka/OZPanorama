@@ -63,8 +63,8 @@ use **Report a problem** in the app.
 
 ## How to use
 
-1. Download the zip from the Releases page and check the published SHA-256.
-2. Extract it to a folder of your own (for example `Documents\OZPanorama`) and open `OZPanorama.exe`. No install needed.
+1. Download **OZPanorama_Setup.exe** from the Releases page (or the portable zip) and check the published SHA-256.
+2. Run the installer (no administrator rights needed) and open OZPanorama from the Start menu. With the zip: extract it and open `OZPanorama.exe`.
 3. **Monitors and position:** enter your measurements (or press "Detect monitors").
 4. **Game and apply:** choose the simulator, check what will change and press Apply. The app creates and checks a backup and only then asks if you want to continue.
 5. Close the game before applying: games rewrite their settings when they exit.
