@@ -1,16 +1,9 @@
-**OZPanorama {VERSION}** - fixes from a full code audit (security, data safety and robustness).
+**OZPanorama {VERSION}** - monitor detection fix for NVIDIA Surround.
 
 ### Fixed
-- Applying: if another program changes a game file in the middle of an apply, the automatic recovery no longer writes the original over that change.
-- Surround: the 60 s time limit now always works, the window stays responsive while Surround is switching, only one switch runs at a time, and the "Keep?" window is in your language.
-- Detect monitors: three monitors of the same model are three (and are placed automatically); large TVs are no longer hidden.
-- Side angle from the outer ends: monitors in a straight line (0°) are accepted.
-- iRacing: a warning when the left and right angles differ (iRacing uses one angle).
-- ETS2/ATS: the multimon_config.sii is checked line by line before it is written.
-- Restore: only accepts the game's own files from a backup record.
-- Problem report: the user folder is hidden whatever its letter case.
-- The Edge window profile and the Surround helper moved to %LOCALAPPDATA%\OZPanorama (not synced by OneDrive); the log rotates at 1 MB.
-- Build: GitHub Actions pinned by commit; Inno Setup version pinned.
+- Detect monitors with NVIDIA Surround on: the same monitor no longer appears several times (one entry per physical monitor, read from its EDID), and monitors inside Surround are no longer marked "not connected now?". The three Surround monitors are placed automatically again.
+
+Also includes everything from 0.1.3 (fixes from the full code audit).
 
 ### Downloads
 - **OZPanorama_Setup_{VERSION}.exe** - installer (English, Português, Español, Français), for your user only, no administrator rights. Uninstalling never deletes the backups in `Documents\OZPanorama\backups`.

@@ -82,14 +82,31 @@ namespace OZPanorama
 
         public static List<object> Read()
         {
-            var list = new List<object>(); var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            // Chave = instância do monitor no registo (DISPLAY\<modelo>\<instância>): três monitores iguais, mesmo com
-            // número de série 0 no EDID, são três instâncias diferentes. A mesma instância vista pelo WMI e pelo registo é uma só.
-            Action<string, int, int, string, bool, string> add = (name, w, h, src, present, key) =>
+            // Chave de cada monitor físico:
+            //  - EDID com número de série → o próprio EDID (o mesmo monitor ligado noutras portas ao longo do tempo deixa várias
+            //    instâncias no registo, todas com o mesmo EDID: contam como um só);
+            //  - série 0 → a instância do registo (três monitores iguais sem série continuam a ser três).
+            var byKey = new Dictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase); var order = new List<string>();
+            // Com o Surround ligado, o Windows só vê o ecrã virtual: os monitores físicos ficam no registo sem a subchave
+            // "Control". Nesse caso não se sabe quais estão ligados, e não se marcam como desligados.
+            bool spanning = Displays.Screens().Any(x => x[0] >= 3600);
+            Action<byte[], string, string, string, bool?> add = (edid, nameHint, src, inst, present) =>
             {
+                var p = Parse(edid); if (p == null) return;
+                string name = !string.IsNullOrEmpty(nameHint) ? nameHint : (string)p[0]; int w = (int)p[1], h = (int)p[2];
                 if (w <= 0 || h <= 0 || Virtual(name)) return;
-                if (!seen.Add(key)) return;
-                list.Add(new Dictionary<string, object> { { "id", "m" + Hash.Sha256(Encoding.UTF8.GetBytes(key)).Substring(0, 12) }, { "name", name }, { "w_mm", w }, { "h_mm", h }, { "source", src }, { "present", present } });
+                bool serial = edid.Length >= 16 && (edid[12] | edid[13] | edid[14] | edid[15]) != 0;
+                var key = serial ? "E:" + Hash.Sha256(edid) : "I:" + inst.ToUpperInvariant();
+                Dictionary<string, object> cur;
+                if (byKey.TryGetValue(key, out cur))
+                {
+                    // Já conhecido: fica com a informação mais forte (ligado agora > desconhecido > desligado).
+                    var was = cur["present"] as bool?;
+                    if (present == true || (present == null && was == false)) cur["present"] = present;
+                    return;
+                }
+                byKey[key] = new Dictionary<string, object> { { "id", "m" + Hash.Sha256(Encoding.UTF8.GetBytes(key)).Substring(0, 12) }, { "name", name }, { "w_mm", w }, { "h_mm", h }, { "source", src }, { "present", present } };
+                order.Add(key);
             };
             // 1) WMI: os monitores que o Windows vê agora (sem Surround, todos).
             try
@@ -104,8 +121,8 @@ namespace OZPanorama
                         {
                             using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\" + inst + @"\Device Parameters"))
                             {
-                                var p = Parse(k == null ? null : k.GetValue("EDID") as byte[]);
-                                if (p != null) add(name.Length > 0 ? name : (string)p[0], (int)p[1], (int)p[2], "EDID", true, inst.ToUpperInvariant());
+                                var e = k == null ? null : k.GetValue("EDID") as byte[];
+                                if (e != null) add(e, name, "EDID", inst, true);
                             }
                         }
                         catch { }
@@ -125,19 +142,20 @@ namespace OZPanorama
                                         using (var ik = mk.OpenSubKey(inst))
                                         using (var dp = ik.OpenSubKey("Device Parameters"))
                                         {
-                                            var p = Parse(dp == null ? null : dp.GetValue("EDID") as byte[]);
-                                            if (p == null) continue;
-                                            bool present;
-                                            using (var ctl = ik.OpenSubKey("Control")) present = ctl != null;   // subchave volátil: só existe com o monitor ligado
-                                            var name = (string)p[0]; if (name.Length == 0) name = model;
-                                            add(name, (int)p[1], (int)p[2], "EDID (registo)", present, ("DISPLAY\\" + model + "\\" + inst).ToUpperInvariant());
+                                            var e = dp == null ? null : dp.GetValue("EDID") as byte[];
+                                            if (e == null) continue;
+                                            bool ctlOk;
+                                            using (var ctl = ik.OpenSubKey("Control")) ctlOk = ctl != null;   // subchave volátil: só existe com o monitor ligado
+                                            bool? present = ctlOk ? (bool?)true : (spanning ? (bool?)null : false);
+                                            var p = Parse(e); var nm = p != null && ((string)p[0]).Length > 0 ? null : model;
+                                            add(e, nm, "EDID (registo)", "DISPLAY\\" + model + "\\" + inst, present);
                                         }
                                     }
                                     catch { }
             }
             catch (Exception e) { AppInfo.Log("EDID registo: " + e.Message); }
-            // Ligados primeiro; os antigos (já desligados) ficam no fim, para escolher à mão se for preciso.
-            return list.OrderBy(o => (bool)((Dictionary<string, object>)o)["present"] ? 0 : 1).ToList();
+            // Ligados primeiro, depois os de estado desconhecido (Surround), por fim os antigos (já desligados).
+            return order.Select(k => byKey[k]).OrderBy(d => { var pr = d["present"] as bool?; return pr == true ? 0 : pr == null ? 1 : 2; }).Cast<object>().ToList();
         }
     }
 
