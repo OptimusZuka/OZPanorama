@@ -1,4 +1,4 @@
-// OZPanorama · Zuka Force — integrações com os simuladores e operações Aplicar / Restaurar (Beta 0.1.1)
+// OZPanorama · Zuka Force — integrações com os simuladores e operações Aplicar / Restaurar (Beta 0.1.3)
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,6 +33,8 @@ namespace OZPanorama
         public string[] Processes = new string[0];
         public bool CanApply { get { return Status == "testado"; } }
         public abstract string[] Paths();
+        /// <summary>Todos os ficheiros que este jogo pode ter escrito (o restauro só aceita estes caminhos).</summary>
+        public virtual string[] AllPaths() { return Paths(); }
         /// <summary>Lê os ficheiros atuais e constrói o plano. Não escreve nada.</summary>
         public abstract Plan BuildPlan(Dictionary<string, object> values, Dictionary<string, Snapshot> snaps);
 
@@ -76,8 +78,7 @@ namespace OZPanorama
             foreach (var c in Candidates()) if (File.Exists(c)) return new[] { c };
             return new[] { Candidates()[0] };
         }
-
-        static readonly Regex NumRx = new Regex(@"^-?\d{1,3}(\.\d{1,6})?$");
+        public override string[] AllPaths() { return OverridePath != null ? new[] { OverridePath } : Candidates(); }
 
         static LineRule Rotation(int win, string value)
         {
@@ -146,13 +147,49 @@ namespace OZPanorama
             return m.Success ? m.Groups[1].Value : null;
         }
 
+        // O .sii vem calculado pela interface: só se aceitam as linhas exatas que o motor gera (engine.js scsSii),
+        // com números e nomes de ponteiros válidos. Qualquer outra coisa é recusada antes de chegar ao disco.
+        static readonly Regex SiiNum = new Regex(@"^-?\d{1,6}(\.\d{1,6})?$");
+        static readonly HashSet<string> SiiNumKeys = new HashSet<string> { "normalized_ui_x", "normalized_ui_width", "normalized_x", "normalized_y", "normalized_width", "normalized_height",
+            "horizontal_fov_relative_offset", "vertical_fov_relative_offset", "heading_offset", "pitch_offset", "roll_offset", "horizontal_fov_override", "vertical_fov_override",
+            "frustum_subrect_x", "frustum_subrect_y", "frustum_subrect_width", "frustum_subrect_height" };
+        public static bool SiiValid(string text)
+        {
+            var lines = text.Split('\n'); int depth = 0, monitors = 0;
+            if (lines.Length < 4 || lines[0] != "SiiNunit" || lines[1] != "{" || lines[lines.Length - 1] != "}") return false;
+            for (int i = 2; i < lines.Length - 1; i++)
+            {
+                var l = lines[i]; Match m;
+                if (l == "") continue;
+                if (l == "}") { if (--depth < 0) return false; continue; }
+                if (depth == 0)
+                {
+                    if (l == "multimon_config : _nameless.ozp.view {" || Regex.IsMatch(l, @"^monitor_config : _nameless\.ozp\.mon\d{1,2} \{$")) { depth = 1; continue; }
+                    return false;
+                }
+                if ((m = Regex.Match(l, @"^ ([a-z_]+): (.+)$")).Success)
+                {
+                    string k = m.Groups[1].Value, val = m.Groups[2].Value;
+                    if (SiiNumKeys.Contains(k)) { if (!SiiNum.IsMatch(val)) return false; continue; }
+                    if (k == "monitors") { if (!int.TryParse(val, out monitors) || monitors < 1 || monitors > 16) return false; continue; }
+                    if (k == "name") { if (!Regex.IsMatch(val, @"^[a-z0-9_]{1,24}$")) return false; continue; }
+                    if (k == "camera_space_offset") { if (val != "(0.000000, 0.000000, 0.000000)") return false; continue; }
+                    if (k == "render_interior" || k == "render_exterior") { if (val != "true" && val != "false") return false; continue; }
+                    return false;
+                }
+                if (Regex.IsMatch(l, @"^ monitors\[\d{1,2}\]: _nameless\.ozp\.mon\d{1,2}$")) continue;
+                return false;
+            }
+            return depth == 0;
+        }
+
         public override Plan BuildPlan(Dictionary<string, object> v, Dictionary<string, Snapshot> snaps)
         {
             var paths = Paths(); var sii = snaps[paths[0]]; var cfg = snaps[paths[1]];
             if (!Directory.Exists(Dir)) throw new OzError("missing", "Não encontrei a pasta do " + Name + " nos Documentos. Abra o jogo uma vez antes.", Dir);
             if (!cfg.Exists) throw new OzError("missing", "Não encontrei o config.cfg do " + Name + ". Abra o jogo uma vez e saia antes.", paths[1]);
             var siiText = Str(v, "sii").Replace("\r\n", "\n").Trim();
-            if (!siiText.StartsWith("SiiNunit") || !siiText.EndsWith("}") || siiText.Length > 20000)
+            if (!siiText.StartsWith("SiiNunit") || !siiText.EndsWith("}") || siiText.Length > 20000 || !SiiValid(siiText))
                 throw new OzError("input", "O conteúdo calculado do multimon_config.sii não é válido. Volte a calcular.");
             var cfgText = TextFile.Decode(cfg.Bytes).Text;
             var p = new Plan { Game = Id, GameName = Name };
@@ -424,6 +461,7 @@ namespace OZPanorama
                 foreach (var f in pv.Plan.Files)
                 {
                     // Última confirmação imediatamente antes de substituir.
+                    if (written.Count > 0) Faults.HitAction("between-files");
                     var again = Snapshot.Read(f.Path);
                     if (again.Sha != pv.Snaps[f.Path].Sha) throw new OzError("changed", "O ficheiro " + f.Label + " mudou durante a aplicação.", f.Path);
                     var data = pv.NewBytes[f.Path];
@@ -454,6 +492,11 @@ namespace OZPanorama
                         var cur = Snapshot.Read(bf.Original);
                         bool same = bf.Existed ? (cur.Exists && cur.Sha == bf.ShaOriginal) : !cur.Exists;
                         if (same) continue;
+                        // Só se desfaz o que o OZPanorama escreveu nesta operação. Um ficheiro que outro programa (o jogo, o
+                        // Steam Cloud...) mudou entretanto fica como está: a alteração dele não é apagada.
+                        byte[] ours;
+                        if (!written.Contains(bf.Original) || !pv.NewBytes.TryGetValue(bf.Original, out ours) || cur.Sha != Hash.Sha256(ours))
+                        { failed.Add(System.IO.Path.GetFileName(bf.Original) + ": alterado por outro programa durante a aplicação; não foi reposto para não apagar essa alteração"); continue; }
                         if (bf.Existed)
                         {
                             var orig = File.ReadAllBytes(bf.Copy);
@@ -503,6 +546,9 @@ namespace OZPanorama
             if (!confirmed) throw new OzError("confirm", "É preciso confirmar antes de restaurar.");
             var b = BackupStore.Find(backupId);
             var g = Registry.Get(b.Game);
+            var allowed = new HashSet<string>(g.AllPaths(), StringComparer.OrdinalIgnoreCase);
+            foreach (var f in b.Files)
+                if (!allowed.Contains(f.Original)) throw new OzError("backup", "O registo do backup aponta para um ficheiro que não é do " + g.Name + "; por segurança nada foi alterado.", f.Original);
             if (g.Running()) throw new OzError("running", "O " + g.Name + " está aberto. Feche-o antes de restaurar.");
             var states = b.Files.ToDictionary(f => f.Original, FileState);
             if (states.Values.Any(s => s == "alterado") && !acceptChanged)

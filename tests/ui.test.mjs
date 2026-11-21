@@ -276,3 +276,32 @@ test("RaceRoom: valores do menu Field of view em cm e graus, a partir do rig", a
   assert.match(out, /screenBezelMiddle=0\b/);
   assert.match(out, /tripleScreenSeparateSizes=false/);
 });
+
+test("Detetar monitores: três monitores iguais são três e ficam colocados (auditoria M4)", async () => {
+  const { page } = await app();
+  await page.route("**/api/monitors", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true,
+    screens: [{ w: 5838, h: 1080, x: 0, y: 0, primary: true }],
+    monitors: ["a", "b", "c"].map((x) => ({ id: "m" + x, name: "AOC 27G4", w_mm: 598, h_mm: 336, source: "EDID (registo)", present: true })) }) }));
+  await page.click("#presetClear");
+  await page.click("#detect"); await page.waitForTimeout(400);
+  const pressed = await page.$$eval('#detOut [aria-pressed="true"]', (b) => b.map((x) => x.dataset.slot).sort().join(""));
+  assert.equal(pressed, "CLR");
+  assert.equal(await page.$eval("#wL", (i) => i.value), "598");
+  assert.equal(await page.$eval("#wR", (i) => i.value), "598");
+  assert.equal(await page.$eval("#gap", (i) => i.value), String(((39 * 598) / 1920).toFixed(1)));
+});
+
+test("Ângulo pelas pontas: monitores alinhados dão 0° (auditoria B2)", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka");
+  await page.fill("#tD", "1838.9");
+  assert.equal(await page.$eval("#angL", (i) => i.value), "0.0");
+});
+
+test("iRacing com ângulos diferentes avisa que usa a média (auditoria B3)", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka");
+  await setField(page, "angL", 50); await setField(page, "angR", 60);
+  await step2(page, "iracing");
+  assert.match(await alerts(page), /55/);
+});

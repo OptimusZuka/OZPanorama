@@ -1,4 +1,4 @@
-// OZPanorama · Zuka Force — servidor local, janela e relatório de problemas (Beta 0.1)
+// OZPanorama · Zuka Force — servidor local, janela e relatório de problemas (Beta 0.1.3)
 // Lê a lista de ecrãs. Só muda o Windows quando a pessoa carrega em Ligar/Desligar Surround (perfis gravados pelo próprio
 // driver da NVIDIA, com confirmação e reposição automática em 20 s; ver app/surround.ps1).
 using System;
@@ -77,18 +77,19 @@ namespace OZPanorama
             return new object[] { name, w, h, key };
         }
 
-        static bool Virtual(string name, int w) { return (name ?? "").IndexOf("surround", StringComparison.OrdinalIgnoreCase) >= 0 || w > 1000; }
+        // Ecrã virtual do NVIDIA Surround / Mosaic: reconhece-se pelo nome (não pela largura: uma TV grande também passa de 1 m).
+        static bool Virtual(string name) { var n = name ?? ""; return n.IndexOf("surround", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("mosaic", StringComparison.OrdinalIgnoreCase) >= 0; }
 
         public static List<object> Read()
         {
             var list = new List<object>(); var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // Chave = instância do monitor no registo (DISPLAY\<modelo>\<instância>): três monitores iguais, mesmo com
+            // número de série 0 no EDID, são três instâncias diferentes. A mesma instância vista pelo WMI e pelo registo é uma só.
             Action<string, int, int, string, bool, string> add = (name, w, h, src, present, key) =>
             {
-                if (w <= 0 || h <= 0 || Virtual(name, w)) return;
-                if (key != null && !seen.Add(key)) return;
-                if (key == null && !seen.Add("n:" + name)) return;
-                seen.Add("n:" + name);
-                list.Add(new Dictionary<string, object> { { "name", name }, { "w_mm", w }, { "h_mm", h }, { "source", src }, { "present", present } });
+                if (w <= 0 || h <= 0 || Virtual(name)) return;
+                if (!seen.Add(key)) return;
+                list.Add(new Dictionary<string, object> { { "id", "m" + Hash.Sha256(Encoding.UTF8.GetBytes(key)).Substring(0, 12) }, { "name", name }, { "w_mm", w }, { "h_mm", h }, { "source", src }, { "present", present } });
             };
             // 1) WMI: os monitores que o Windows vê agora (sem Surround, todos).
             try
@@ -96,15 +97,15 @@ namespace OZPanorama
                 using (var q = new System.Management.ManagementObjectSearcher(@"root\wmi", "SELECT InstanceName, UserFriendlyName FROM WmiMonitorID"))
                     foreach (System.Management.ManagementObject m in q.Get())
                     {
-                        var inst = (string)m["InstanceName"]; string name = "";
+                        var inst = Regex.Replace((string)m["InstanceName"] ?? "", @"_\d+$", ""); string name = "";
                         var chars = m["UserFriendlyName"] as ushort[];
                         if (chars != null) name = new string(chars.Where(ch => ch != 0).Select(ch => (char)ch).ToArray()).Trim();
                         try
                         {
-                            using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\" + Regex.Replace(inst, @"_\d+$", "") + @"\Device Parameters"))
+                            using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\" + inst + @"\Device Parameters"))
                             {
                                 var p = Parse(k == null ? null : k.GetValue("EDID") as byte[]);
-                                if (p != null) add(name.Length > 0 ? name : (string)p[0], (int)p[1], (int)p[2], "EDID", true, (string)p[3]);
+                                if (p != null) add(name.Length > 0 ? name : (string)p[0], (int)p[1], (int)p[2], "EDID", true, inst.ToUpperInvariant());
                             }
                         }
                         catch { }
@@ -126,9 +127,10 @@ namespace OZPanorama
                                         {
                                             var p = Parse(dp == null ? null : dp.GetValue("EDID") as byte[]);
                                             if (p == null) continue;
-                                            bool present = ik.OpenSubKey("Control") != null;   // subchave volátil: só existe com o monitor ligado
+                                            bool present;
+                                            using (var ctl = ik.OpenSubKey("Control")) present = ctl != null;   // subchave volátil: só existe com o monitor ligado
                                             var name = (string)p[0]; if (name.Length == 0) name = model;
-                                            add(name, (int)p[1], (int)p[2], "EDID (registo)", present, (string)p[3]);
+                                            add(name, (int)p[1], (int)p[2], "EDID (registo)", present, ("DISPLAY\\" + model + "\\" + inst).ToUpperInvariant());
                                         }
                                     }
                                     catch { }
@@ -146,7 +148,7 @@ namespace OZPanorama
         {
             if (s == null) return null;
             var user = Environment.UserName; var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            if (!string.IsNullOrEmpty(profile)) s = s.Replace(profile, "%USERPROFILE%");
+            if (!string.IsNullOrEmpty(profile)) s = Regex.Replace(s, Regex.Escape(profile), "%USERPROFILE%", RegexOptions.IgnoreCase);
             s = Regex.Replace(s, @"(?i)[A-Z]:\\Users\\[^\\""\s]+", "%USERPROFILE%");
             s = Regex.Replace(s, @"[\w.+-]+@[\w-]+\.[\w.]+", "<email>");
             if (!string.IsNullOrEmpty(user) && user.Length >= 3) s = Regex.Replace(s, Regex.Escape(user), "<utilizador>", RegexOptions.IgnoreCase);
@@ -187,6 +189,7 @@ namespace OZPanorama
     {
         public static string Dir { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OZPanorama", "surround"); } }
         static readonly object gate = new object();
+        static Process applying;   // só uma troca de modo de cada vez
 
         static string Script()
         {
@@ -196,16 +199,21 @@ namespace OZPanorama
                 if (st == null) throw new OzError("surround", "O módulo do Surround não está incluído neste programa.");
                 var ms = new MemoryStream(); st.CopyTo(ms); b = ms.ToArray();
             }
-            var dir = Path.Combine(AppInfo.DataDir, "bin"); Directory.CreateDirectory(dir);
+            var dir = Path.Combine(AppInfo.LocalDir, "bin"); Directory.CreateDirectory(dir);
             var p = Path.Combine(dir, "surround.ps1");
             if (!File.Exists(p) || !File.ReadAllBytes(p).SequenceEqual(b)) File.WriteAllBytes(p, b);
             return p;
         }
 
-        static ProcessStartInfo Psi(string action, string profile, string rid)
+        static readonly string[] Langs = { "en", "pt-BR", "es", "fr" };
+
+        static ProcessStartInfo Psi(string action, string profile, string rid, string lang)
         {
+            // Todos os argumentos vêm de listas fechadas (ação, perfil, língua) ou de um GUID gerado aqui.
+            if (lang == "pt") lang = "pt-BR";   // código da interface (i18n.js) → código do script
+            if (lang != null && Array.IndexOf(Langs, lang) < 0) lang = "en";
             var cmd = "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; & '" + Script().Replace("'", "''") + "' -Action " + action
-                + (profile != null ? " -Perfil " + profile : "") + (rid != null ? " -RequestId " + rid : "");
+                + (profile != null ? " -Perfil " + profile : "") + (rid != null ? " -RequestId " + rid : "") + (lang != null ? " -Lang " + lang : "");
             var exe = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), @"WindowsPowerShell\v1.0\powershell.exe");
             if (!File.Exists(exe)) exe = "powershell.exe";
             return new ProcessStartInfo(exe, "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"" + cmd + "\"")
@@ -217,11 +225,13 @@ namespace OZPanorama
         {
             lock (gate)
             {
-                using (var pr = Process.Start(Psi(action, profile, null)))
+                using (var pr = Process.Start(Psi(action, profile, null, null)))
                 {
+                    // As duas saídas são lidas em paralelo: assim o tempo limite funciona mesmo que o PowerShell encrave.
                     var errTask = pr.StandardError.ReadToEndAsync();
-                    var output = pr.StandardOutput.ReadToEnd();
+                    var outTask = pr.StandardOutput.ReadToEndAsync();
                     if (!pr.WaitForExit(60000)) { try { pr.Kill(); } catch { } throw new OzError("surround", "O Surround não respondeu a tempo."); }
+                    var output = outTask.Result;
                     var i = output.IndexOf('{');
                     if (i < 0) { AppInfo.Log("surround " + action + ": " + output + " | " + errTask.Result); throw new OzError("surround", "Não consegui falar com o driver da NVIDIA.", errTask.Result); }
                     return json.Deserialize<Dictionary<string, object>>(output.Substring(i));
@@ -230,12 +240,26 @@ namespace OZPanorama
         }
 
         /// <summary>apply: processo à parte (a mudança de modo e a janela de confirmação não bloqueiam o servidor).</summary>
-        public static string Apply(string profile)
+        public static string Apply(string profile, string lang)
         {
-            var rid = Guid.NewGuid().ToString("N");
-            var psi = Psi("apply", profile, rid); psi.RedirectStandardOutput = psi.RedirectStandardError = false; psi.StandardOutputEncoding = psi.StandardErrorEncoding = null;
-            Process.Start(psi);
-            return rid;
+            lock (gate)
+            {
+                if (applying != null && !applying.HasExited) throw new OzError("surround-busy", "Já está a decorrer uma mudança do Surround. Espere que termine.");
+                if (applying != null) { applying.Dispose(); applying = null; }
+                var rid = Guid.NewGuid().ToString("N");
+                var psi = Psi("apply", profile, rid, lang); psi.RedirectStandardOutput = psi.RedirectStandardError = false; psi.StandardOutputEncoding = psi.StandardErrorEncoding = null;
+                applying = Process.Start(psi);
+                return rid;
+            }
+        }
+
+        /// <summary>Resultado da última troca (ultimo.json, escrito pelo script). Leitura direta, sem arrancar o PowerShell.</summary>
+        public static Dictionary<string, object> Last(JavaScriptSerializer json)
+        {
+            var f = Path.Combine(Dir, "ultimo.json"); object last = null;
+            try { if (File.Exists(f)) last = json.DeserializeObject(File.ReadAllText(f, Encoding.UTF8).TrimStart('\uFEFF')); } catch { last = null; }
+            bool running; lock (gate) running = applying != null && !applying.HasExited;
+            return new Dictionary<string, object> { { "ok", true }, { "last", last }, { "running", running } };
         }
 
         public static void Keep(string rid)
@@ -250,7 +274,11 @@ namespace OZPanorama
     {
         public int Port; public string Token = Guid.NewGuid().ToString("N");
         HttpListener http; DateTime lastSeen = DateTime.UtcNow; volatile bool quit;
-        readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 4 * 1024 * 1024 };
+        // Pedidos atendidos em paralelo; tudo o que lê ou escreve ficheiros de jogos e backups passa por esta fila única.
+        // As chamadas ao Surround (PowerShell, segundos) ficam fora dela, para não bloquearem a janela.
+        readonly object opsGate = new object();
+        // Uma instância por uso: os pedidos correm em paralelo e o JavaScriptSerializer não é garantidamente thread-safe.
+        JavaScriptSerializer json { get { return new JavaScriptSerializer { MaxJsonLength = 4 * 1024 * 1024 }; } }
         public const string IssuesUrl = "https://github.com/OptimusZuka/OZPanorama/issues/new";
 
         public void Start()
@@ -287,8 +315,12 @@ namespace OZPanorama
             {
                 HttpListenerContext ctx;
                 try { ctx = http.GetContext(); } catch { break; }
-                try { Handle(ctx); }
-                catch (Exception e) { AppInfo.Log("erro interno: " + e); try { Send(ctx, 500, new Dictionary<string, object> { { "ok", false }, { "error", "Erro interno. Use \"Reportar problema\"." } }); } catch { } }
+                var c = ctx;
+                ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    try { Handle(c); }
+                    catch (Exception e) { AppInfo.Log("erro interno: " + e); try { Send(c, 500, new Dictionary<string, object> { { "ok", false }, { "error", "Erro interno. Use \"Reportar problema\"." } }); } catch { } }
+                });
             }
         }
 
@@ -324,7 +356,7 @@ namespace OZPanorama
             var path = c.Request.Url.AbsolutePath; var method = c.Request.HttpMethod;
             // Anti DNS-rebinding: só aceitamos o nosso próprio anfitrião.
             var host = c.Request.Headers["Host"] ?? "";
-            if (host != "localhost:" + Port && host != "127.0.0.1:" + Port) { c.Response.StatusCode = 403; c.Response.Close(); return; }
+            if (host != "localhost:" + Port) { c.Response.StatusCode = 403; c.Response.Close(); return; }
 
             if (method == "GET" && (path == "/" || path == "/index.html"))
             {
@@ -341,9 +373,19 @@ namespace OZPanorama
             if (method == "POST")
             {
                 if (!(c.Request.ContentType ?? "").StartsWith("application/json")) { Send(c, 415, new Dictionary<string, object> { { "ok", false }, { "error", "Pedido inválido." } }); return; }
-                using (var r = new StreamReader(c.Request.InputStream, Encoding.UTF8)) { var t = r.ReadToEnd(); body = string.IsNullOrWhiteSpace(t) ? new Dictionary<string, object>() : json.Deserialize<Dictionary<string, object>>(t); }
+                if (c.Request.ContentLength64 > 4 * 1024 * 1024) { Send(c, 413, new Dictionary<string, object> { { "ok", false }, { "error", "Pedido demasiado grande." } }); return; }
+                try
+                {
+                    using (var r = new StreamReader(c.Request.InputStream, Encoding.UTF8)) { var t = r.ReadToEnd(); body = string.IsNullOrWhiteSpace(t) ? new Dictionary<string, object>() : json.Deserialize<Dictionary<string, object>>(t); }
+                }
+                catch (Exception) { Send(c, 400, new Dictionary<string, object> { { "ok", false }, { "error", "Pedido inválido." } }); return; }
+                if (body == null) body = new Dictionary<string, object>();
             }
-            try { Route(c, method, path, body); }
+            try
+            {
+                if (path.StartsWith("/api/surround")) Route(c, method, path, body);
+                else lock (opsGate) Route(c, method, path, body);
+            }
             catch (OzError e) { AppInfo.Log(path + " recusado: " + e.Code + " " + e.Message + " | " + e.Detail); Send(c, 409, ErrorBody(e)); }
             catch (Exception e) { AppInfo.Log(path + " erro: " + e); Send(c, 500, new Dictionary<string, object> { { "ok", false }, { "error", "Erro inesperado; nada foi alterado sem verificação. Use \"Reportar problema\"." }, { "detail", Report.Anonymize(e.Message) } }); }
         }
@@ -428,13 +470,14 @@ namespace OZPanorama
                 Send(c, 200, new Dictionary<string, object> { { "ok", true } }); return;
             }
             if (method == "GET" && path == "/api/surround") { Send(c, 200, Surround.Call("status", null, json)); return; }
+            if (method == "GET" && path == "/api/surround/last") { Send(c, 200, Surround.Last(json)); return; }
             if (method == "POST" && (path == "/api/surround/save" || path == "/api/surround/apply"))
             {
                 var p = S(b, "profile");
                 if (p != "com" && p != "sem") throw new OzError("input", "Perfil desconhecido.");
                 if (path.EndsWith("/save")) { var r = Surround.Call("save", p, json); AppInfo.Log("Surround guardado " + p); Send(c, 200, r); return; }
                 AppInfo.Log("Surround: aplicar " + p);
-                Send(c, 200, new Dictionary<string, object> { { "ok", true }, { "started", true }, { "id", Surround.Apply(p) } }); return;
+                Send(c, 200, new Dictionary<string, object> { { "ok", true }, { "started", true }, { "id", Surround.Apply(p, S(b, "lang")) } }); return;
             }
             if (method == "POST" && path == "/api/surround/keep") { Surround.Keep(S(b, "id")); AppInfo.Log("Surround: manter"); Send(c, 200, new Dictionary<string, object> { { "ok", true } }); return; }
             if (method == "POST" && path == "/api/quit") { Send(c, 200, new Dictionary<string, object> { { "ok", true } }); quit = true; try { http.Stop(); } catch { } return; }
@@ -475,7 +518,7 @@ namespace OZPanorama
                 try
                 {
                     // Janela própria do Edge (modo aplicação), com perfil separado para não misturar com a navegação da pessoa.
-                    var profile = Path.Combine(AppInfo.DataDir, "janela");
+                    var profile = Path.Combine(AppInfo.LocalDir, "janela");   // perfil do Edge fora dos Documentos (OneDrive)
                     if (edge != null) Process.Start(edge, "--app=" + url + " --user-data-dir=\"" + profile + "\" --no-first-run --window-size=1280,860");
                     else Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                 }

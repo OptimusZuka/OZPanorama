@@ -455,6 +455,7 @@ function validate(i) {
       Math.round(m.curve_radius_mm), f1(arc), f1(chord), f1(sag), e.toFixed(2).replace(".", lang === "en" ? "." : ",")));
     if (m === i.center) notes.push(F("Distance to a curved center screen: measure to the line between the screen ends. If you measured to the middle of the screen, subtract {0} mm.", Math.round(sag)));
   }
+  if (game === "iracing" && Math.abs(i.left.hinge_deg - i.right.hinge_deg) > 0.5) warns.push(F("iRacing uses one angle for both sides: it will use the average, {0}°. Set both sides to the same angle for an exact result.", f1((i.left.hinge_deg + i.right.hinge_deg) / 2)));
   if (!!i.center.curve_radius_mm !== !!i.left.curve_radius_mm && game === "iracing") warns.push(T("Curved and flat mixed: iRacing only accepts three equal screens. It uses \"3 Flat Screens\", with the curved one treated as flat by its chord."));
   return { errs, warns, notes };
 }
@@ -672,7 +673,8 @@ function spanAngle(write) {
   if (!(d > 0)) { $("tDOut").textContent = ""; return null; }
   const [a, b, est] = caseWidths();
   if (!(a > 0 && b > 0)) { $("tDOut").textContent = T("Enter the monitor widths first (or use Detect monitors)."); return null; }
-  const c = (d - a) / (2 * b);
+  let c = (d - a) / (2 * b);
+  if (c > 1 && c < 1 + 1e-9) c = 1;   // monitores alinhados (0°): arredondamento de vírgula flutuante
   if (c > 1 || c < -0.2) { $("tDOut").textContent = T("This distance does not fit these monitors. Check it."); return null; }
   const v = (Math.acos(c) * 180) / Math.PI, u = (180 / Math.PI) / (2 * b * Math.sqrt(Math.max(1e-6, 1 - c * c)));
   $("tDOut").textContent = F("Angle of each side: {0}° (±{1}° per mm of error). Cases: center {2} mm, sides {3} mm.", f1(v), u.toFixed(2).replace(".", lang === "en" ? "." : ","), f1(a), f1(b)) + (est ? " " + T("Case widths estimated from the visible area plus the gap. Detect monitors gives the exact ones.") : "");
@@ -924,7 +926,7 @@ function fillFromSlots() {
   saveRig(); render();
 }
 function assignMon(m, k) {
-  for (const s of ["L", "C", "R"]) if (slotMon[s] === m) delete slotMon[s];
+  for (const s of ["L", "C", "R"]) if (slotMon[s] && slotMon[s].id === m.id) delete slotMon[s];
   const cat = catFind(m.name); slotMon[k] = { ...m, cat };
   let w = m.w_mm, h = m.h_mm;
   if (cat && cat.area) [w, h] = cat.area;
@@ -952,14 +954,15 @@ $("detect").addEventListener("click", async () => {
   }
   // Lugares automáticos: o monitor curvo das fichas vai ao centro, os outros das fichas aos lados; o resto escolhe-se à mão.
   for (const k of ["L", "C", "R"]) delete slotMon[k];
-  const known = mons.filter((m, i) => catFind(m.name) && mons.findIndex((x) => catFind(x.name) === catFind(m.name)) === i);
+  // Cada monitor conta pelo seu id (instância do Windows): três monitores iguais são três. Os ligados agora primeiro.
+  const known = mons.filter((m) => catFind(m.name) && m.present !== false);
   const center = known.find((m) => catFind(m.name).radius) || (known.length === 3 ? known[1] : null);
   let auto = false;
   if (center && known.length >= 3) {
     const sides = known.filter((m) => m !== center).slice(0, 2);
     assignMon(center, "C"); assignMon(sides[0], "L"); assignMon(sides[1], "R"); auto = true;
   }
-  const slotOf = (m) => ["L", "C", "R"].find((k) => slotMon[k] && slotMon[k].name === m.name && slotMon[k].w_mm === m.w_mm);
+  const slotOf = (m) => ["L", "C", "R"].find((k) => slotMon[k] && slotMon[k].id === m.id);
   const draw = () => {
     box.innerHTML = `<div class="alert info">${esc(resNote)}</div>` + (mons.length ? `<div class="panel stack"><b>${esc(auto ? T("Monitors placed automatically. Change them if they are not in the right place:") : T("Assign each monitor to its place:"))}</b>` + mons.map((m, n) => {
       const cat = catFind(m.name), sl = slotOf(m);
@@ -999,16 +1002,17 @@ async function surApply(profile) {
   surBusy = true; $("surOn").disabled = $("surOff").disabled = true;
   $("surMsg").textContent = T("Changing the screens… The monitors may flicker.");
   try {
-    const { id } = await API("/api/surround/apply", { profile });
+    const { id } = await API("/api/surround/apply", { profile, lang });
     $("surKeep").onclick = async () => { $("surKeep").disabled = true; try { await API("/api/surround/keep", { id }); $("surMsg").textContent = T("Confirmed. Finishing…"); } catch (e) { $("surMsg").textContent = errText(e); } };
     for (let i = 0; i < 45; i++) {
       await new Promise((r) => setTimeout(r, 1500));
-      let s; try { s = await API("/api/surround"); } catch { continue; }
+      let s; try { s = await API("/api/surround/last"); } catch { continue; }
       if (s.last && s.last.id === id && s.last.waiting) {
         $("surKeep").hidden = false; if (!$("surKeep").disabled) $("surMsg").textContent = T("Are the screens OK? Press “Keep these screens” (or Keep in the Windows window). With no answer in 20 s, OZPanorama puts back the previous setup.");
         continue;
       }
       if (s.last && s.last.id === id) { $("surMsg").textContent = s.last.message; break; }
+      if (!s.running && i > 3) { $("surMsg").textContent = T("No answer from the screen change. Check the state above."); break; }
       if (i === 44) $("surMsg").textContent = T("No answer from the screen change. Check the state above.");
     }
   } catch (e) { $("surMsg").textContent = errText(e); }
