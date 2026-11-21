@@ -8,6 +8,6 @@
 - **RaceRoom**: needs Surround (or Eyefinity) and the game at the full Surround resolution. Tested with Surround bezel correction on (bezels written as 0); without it, the bezel values are not yet tested. The game rewrites `graphics_options.xml` when it exits, so close it before applying. The eye height is not written yet (it stays as set in the game).
 - **Assetto Corsa and ACC**: not in this Beta.
 - **NVIDIA Surround on/off**: uses profiles saved by the NVIDIA driver itself (you save them once). After switching, the app asks you to confirm and puts back the previous setup after 20 s without an answer. Tested on the author's rig only; AMD Eyefinity is not supported.
-- **Monitor detection (EDID)**: sizes come in whole millimetres or centimetres, and on a curved monitor it is usually the chord. With Surround on, monitors are read from the Windows registry and old monitors may also appear. A tape measure is more accurate.
+- **Monitor detection (EDID)**: sizes come in whole millimetres or centimetres, and on a curved monitor it is usually the chord. With Surround on, monitors are read from the Windows registry; old entries of the same monitor are merged, but a monitor you no longer use may still be listed. A tape measure is more accurate.
 - **Unsigned executable**: SmartScreen and some antivirus programs may warn (see README).
-- **Window**: opens in Microsoft Edge app mode; without Edge, it opens in the default browser.
+- **Window**: opens in its own window using the Microsoft WebView2 Runtime (part of Windows 10/11). Without WebView2 it falls back to Microsoft Edge app mode, and without Edge to the default browser.

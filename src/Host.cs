@@ -1,4 +1,4 @@
-// OZPanorama · Zuka Force — servidor local, janela e relatório de problemas (Beta 0.1.3)
+﻿// OZPanorama · Zuka Force — servidor local, janela e relatório de problemas (Beta 0.1.3)
 // Lê a lista de ecrãs. Só muda o Windows quando a pessoa carrega em Ligar/Desligar Surround (perfis gravados pelo próprio
 // driver da NVIDIA, com confirmação e reposição automática em 20 s; ver app/surround.ps1).
 using System;
@@ -80,35 +80,49 @@ namespace OZPanorama
         // Ecrã virtual do NVIDIA Surround / Mosaic: reconhece-se pelo nome (não pela largura: uma TV grande também passa de 1 m).
         static bool Virtual(string name) { var n = name ?? ""; return n.IndexOf("surround", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("mosaic", StringComparison.OrdinalIgnoreCase) >= 0; }
 
+        /// <summary>Uma instância de monitor no registo (Enum\DISPLAY).</summary>
+        public class Inst { public string Id; public byte[] Edid; public int Address; public bool Present; public string Name; }
+
+        // Identidade do modelo físico: fabricante, produto, série, semana/ano e tamanho (bloco base do EDID).
+        // Não se usa o EDID inteiro: o mesmo monitor deixa instâncias antigas só com 128 bytes e a atual com 256.
+        public static string Identity(byte[] e) { return BitConverter.ToString(e, 8, 10) + "-" + e[21] + "x" + e[22]; }
+
+        /// <summary>Agrupa as instâncias por monitor físico.
+        /// Com o Surround ligado, o Windows esconde os monitores físicos (deixam de estar "presentes"): conta-se uma cópia
+        /// por cada porta (Address) diferente onde esse modelo foi visto, porque três monitores iguais sem série
+        /// ficam em três portas, e as instâncias antigas do mesmo monitor (Address 0 ou repetido) contam como uma.</summary>
+        public static List<object> Group(IEnumerable<Inst> all, bool spanning)
+        {
+            var res = new List<Dictionary<string, object>>();
+            foreach (var g in all.Where(i => i.Edid != null && i.Edid.Length >= 23).GroupBy(i => Identity(i.Edid)))
+            {
+                var best = g.OrderByDescending(i => i.Edid.Length).First();
+                var p = Parse(best.Edid); if (p == null) continue;
+                string name = g.Select(i => i.Name).FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "";
+                if (name.Length == 0) name = (string)p[0];
+                int w = (int)p[1], h = (int)p[2];
+                if (w <= 0 || h <= 0 || Virtual(name)) continue;
+                var present = g.Where(i => i.Present).ToList();
+                var usedAddr = new HashSet<int>(present.Select(i => i.Address));
+                int hidden = g.Where(i => !i.Present && i.Address != 0 && !usedAddr.Contains(i.Address)).Select(i => i.Address).Distinct().Count();
+                var states = new List<bool?>();
+                foreach (var i in present) states.Add(true);
+                if (spanning) { if (present.Count == 0) hidden = Math.Max(1, hidden); for (int k = 0; k < hidden; k++) states.Add(null); }
+                else if (present.Count == 0) states.Add(false);
+                for (int n = 0; n < states.Count; n++)
+                    res.Add(new Dictionary<string, object> {
+                        { "id", "m" + Hash.Sha256(Encoding.UTF8.GetBytes(g.Key + "#" + n)).Substring(0, 12) },
+                        { "name", name }, { "w_mm", w }, { "h_mm", h }, { "source", "EDID" }, { "present", states[n] } });
+            }
+            // Ligados primeiro, depois os de estado desconhecido (Surround), por fim os antigos (já desligados).
+            return res.OrderBy(d => { var pr = d["present"] as bool?; return pr == true ? 0 : pr == null ? 1 : 2; }).Cast<object>().ToList();
+        }
+
         public static List<object> Read()
         {
-            // Chave de cada monitor físico:
-            //  - EDID com número de série → o próprio EDID (o mesmo monitor ligado noutras portas ao longo do tempo deixa várias
-            //    instâncias no registo, todas com o mesmo EDID: contam como um só);
-            //  - série 0 → a instância do registo (três monitores iguais sem série continuam a ser três).
-            var byKey = new Dictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase); var order = new List<string>();
-            // Com o Surround ligado, o Windows só vê o ecrã virtual: os monitores físicos ficam no registo sem a subchave
-            // "Control". Nesse caso não se sabe quais estão ligados, e não se marcam como desligados.
             bool spanning = Displays.Screens().Any(x => x[0] >= 3600);
-            Action<byte[], string, string, string, bool?> add = (edid, nameHint, src, inst, present) =>
-            {
-                var p = Parse(edid); if (p == null) return;
-                string name = !string.IsNullOrEmpty(nameHint) ? nameHint : (string)p[0]; int w = (int)p[1], h = (int)p[2];
-                if (w <= 0 || h <= 0 || Virtual(name)) return;
-                bool serial = edid.Length >= 16 && (edid[12] | edid[13] | edid[14] | edid[15]) != 0;
-                var key = serial ? "E:" + Hash.Sha256(edid) : "I:" + inst.ToUpperInvariant();
-                Dictionary<string, object> cur;
-                if (byKey.TryGetValue(key, out cur))
-                {
-                    // Já conhecido: fica com a informação mais forte (ligado agora > desconhecido > desligado).
-                    var was = cur["present"] as bool?;
-                    if (present == true || (present == null && was == false)) cur["present"] = present;
-                    return;
-                }
-                byKey[key] = new Dictionary<string, object> { { "id", "m" + Hash.Sha256(Encoding.UTF8.GetBytes(key)).Substring(0, 12) }, { "name", name }, { "w_mm", w }, { "h_mm", h }, { "source", src }, { "present", present } };
-                order.Add(key);
-            };
-            // 1) WMI: os monitores que o Windows vê agora (sem Surround, todos).
+            // 1) WMI: os monitores que o Windows vê agora (com o Surround, só o ecrã virtual e os que estão fora dele).
+            var live = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 using (var q = new System.Management.ManagementObjectSearcher(@"root\wmi", "SELECT InstanceName, UserFriendlyName FROM WmiMonitorID"))
@@ -117,19 +131,12 @@ namespace OZPanorama
                         var inst = Regex.Replace((string)m["InstanceName"] ?? "", @"_\d+$", ""); string name = "";
                         var chars = m["UserFriendlyName"] as ushort[];
                         if (chars != null) name = new string(chars.Where(ch => ch != 0).Select(ch => (char)ch).ToArray()).Trim();
-                        try
-                        {
-                            using (var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\" + inst + @"\Device Parameters"))
-                            {
-                                var e = k == null ? null : k.GetValue("EDID") as byte[];
-                                if (e != null) add(e, name, "EDID", inst, true);
-                            }
-                        }
-                        catch { }
+                        live[inst] = name;
                     }
             }
             catch (Exception e) { AppInfo.Log("EDID WMI: " + e.Message); }
-            // 2) Registo: todos os monitores com EDID (inclui os que estão dentro do Surround).
+            // 2) Registo: todas as instâncias com EDID (inclui as escondidas pelo Surround e as antigas).
+            var all = new List<Inst>();
             try
             {
                 using (var disp = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\DISPLAY"))
@@ -144,18 +151,20 @@ namespace OZPanorama
                                         {
                                             var e = dp == null ? null : dp.GetValue("EDID") as byte[];
                                             if (e == null) continue;
-                                            bool ctlOk;
-                                            using (var ctl = ik.OpenSubKey("Control")) ctlOk = ctl != null;   // subchave volátil: só existe com o monitor ligado
-                                            bool? present = ctlOk ? (bool?)true : (spanning ? (bool?)null : false);
-                                            var p = Parse(e); var nm = p != null && ((string)p[0]).Length > 0 ? null : model;
-                                            add(e, nm, "EDID (registo)", "DISPLAY\\" + model + "\\" + inst, present);
+                                            var id = "DISPLAY\\" + model + "\\" + inst; string nm;
+                                            bool on = live.TryGetValue(id, out nm);
+                                            var p = Parse(e);
+                                            if (string.IsNullOrEmpty(nm)) nm = p != null && ((string)p[0]).Length > 0 ? null : model;
+                                            var ad = ik.GetValue("Address"); int addr = ad is int ? (int)ad : 0;
+                                            all.Add(new Inst { Id = id, Edid = e, Address = addr, Present = on, Name = nm });
                                         }
                                     }
                                     catch { }
             }
             catch (Exception e) { AppInfo.Log("EDID registo: " + e.Message); }
-            // Ligados primeiro, depois os de estado desconhecido (Surround), por fim os antigos (já desligados).
-            return order.Select(k => byKey[k]).OrderBy(d => { var pr = d["present"] as bool?; return pr == true ? 0 : pr == null ? 1 : 2; }).Cast<object>().ToList();
+            var list = Group(all, spanning);
+            AppInfo.Log("EDID: " + all.Count + " instâncias, " + list.Count + " monitores" + (spanning ? " (Surround)" : ""));
+            return list;
         }
     }
 
@@ -292,6 +301,10 @@ namespace OZPanorama
     {
         public int Port; public string Token = Guid.NewGuid().ToString("N");
         HttpListener http; DateTime lastSeen = DateTime.UtcNow; volatile bool quit;
+        /// <summary>Com janela própria, é a janela que decide quando o programa fecha (sem limite de 90 s sem pedidos).</summary>
+        public volatile bool OwnWindow;
+        public bool Stopped { get { return quit; } }
+        public void Stop() { quit = true; try { http.Stop(); } catch { } }
         // Pedidos atendidos em paralelo; tudo o que lê ou escreve ficheiros de jogos e backups passa por esta fila única.
         // As chamadas ao Surround (PowerShell, segundos) ficam fora dela, para não bloquearem a janela.
         readonly object opsGate = new object();
@@ -328,7 +341,7 @@ namespace OZPanorama
         public void Run()
         {
             // Fecha sozinho se a janela deixar de falar com o servidor (a interface pergunta o estado a cada 5 s).
-            new Thread(() => { while (!quit) { Thread.Sleep(5000); if ((DateTime.UtcNow - lastSeen).TotalSeconds > 90) quit = true; } if (quit) try { http.Stop(); } catch { } }) { IsBackground = true }.Start();
+            new Thread(() => { while (!quit) { Thread.Sleep(5000); if (!OwnWindow && (DateTime.UtcNow - lastSeen).TotalSeconds > 90) quit = true; } if (quit) try { http.Stop(); } catch { } }) { IsBackground = true }.Start();
             while (!quit)
             {
                 HttpListenerContext ctx;
@@ -532,16 +545,25 @@ namespace OZPanorama
                 catch (OzError e) { System.Windows.Forms.MessageBox.Show(e.Message, "OZPanorama"); return 1; }
                 AppInfo.Log("início " + AppInfo.Version + " porta " + s.Port);
                 var url = "http://localhost:" + s.Port + "/";
+                // 1) Janela própria (WebView2 do Windows). O servidor corre noutra thread e fecha com a janela.
+                s.OwnWindow = true;
+                var srv = new Thread(s.Run) { IsBackground = true, Name = "servidor" }; srv.Start();
+                bool own = false;
+                try { own = WebWindow.Run(url, Path.Combine(AppInfo.LocalDir, "webview"), () => s.Stopped); }
+                catch (Exception e) { AppInfo.Log("janela: " + e.Message); }
+                if (own) { s.Stop(); srv.Join(3000); AppInfo.Log("fim"); return 0; }
+                // 2) Sem WebView2: janela do Edge em modo aplicação, como antes.
+                s.OwnWindow = false;
                 var edge = FindEdge();
                 try
                 {
-                    // Janela própria do Edge (modo aplicação), com perfil separado para não misturar com a navegação da pessoa.
-                    var profile = Path.Combine(AppInfo.LocalDir, "janela");   // perfil do Edge fora dos Documentos (OneDrive)
+                    // Perfil separado para não misturar com a navegação da pessoa (fora dos Documentos/OneDrive).
+                    var profile = Path.Combine(AppInfo.LocalDir, "janela");
                     if (edge != null) Process.Start(edge, "--app=" + url + " --user-data-dir=\"" + profile + "\" --no-first-run --window-size=1280,860");
                     else Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                 }
                 catch (Exception e) { AppInfo.Log("janela: " + e.Message); Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
-                s.Run();
+                srv.Join();
                 AppInfo.Log("fim");
                 return 0;
             }
