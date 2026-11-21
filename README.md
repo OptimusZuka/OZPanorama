@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases"><b>⬇ Download Beta 0.1</b></a> ·
+  <a href="../../releases"><b>⬇ Download the Beta</b></a> ·
   <a href="docs/LIMITATIONS.md">Known limitations</a> ·
   <a href="../../issues/new/choose">Report a problem</a>
 </p>
@@ -48,6 +48,7 @@ and **writes the right values into the game's files**, with a backup and a check
 | Euro Truck Simulator 2 | Tested | `multimon_config.sii` and `r_multimon_mode "4"` in `config.cfg` |
 | American Truck Simulator | Tested | Same as ETS2 |
 | iRacing | Tested | 7 settings in `rendererDX11Monitor.ini` |
+| RaceRoom Racing Experience | Tested | Triple screen settings in `graphics_options.xml` (distance, screen sizes, bezels, angles) |
 
 "Tested" means tested by the author on his own rig (three 27" monitors). Other rigs may behave differently:
 use **Report a problem** in the app.

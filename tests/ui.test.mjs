@@ -228,7 +228,7 @@ test("Surround: sem clique só se lê o estado (nada muda no Windows); token em 
   assert.ok(srv.requests.length > 0 && srv.requests.every((r) => r.token === token));
   assert.ok(srv.requests.filter((r) => r.method === "POST").every((r) => r.type === "application/json"));
   const ids = await page.$$eval("#games button[data-k]", (els) => els.map((e) => e.dataset.k));
-  assert.deepEqual(ids.sort(), ["ats", "ets2", "iracing", "msfs"]);
+  assert.deepEqual(ids.sort(), ["ats", "ets2", "iracing", "msfs", "raceroom"]);
 });
 
 test("Línguas: as mesmas do RealFFB, escolhidas pelo Windows e trocáveis", async () => {
@@ -254,4 +254,25 @@ test("Ângulo pela distância entre as pontas de fora do esquerdo e do direito",
   await page.fill("#tD", "2000");
   assert.match(await page.textContent("#tDOut"), /\S/);
   assert.equal(await page.$eval("#angL", (i) => i.value), "55.9");
+});
+
+test("Sem medidas exatas: o ângulo sai da diagonal e a vista de cima aparece antes das resoluções", async () => {
+  const { page } = await app();
+  await page.click("#presetClear");
+  await setField(page, "diag", 27); await setField(page, "dist", 710);
+  await page.fill("#tD", "1300");
+  assert.match(await page.$eval("#angL", (i) => i.value), /^5\d\.\d$/);
+  assert.ok((await page.innerHTML("#topview")).includes("<svg"), "vista de cima desenhada");
+});
+
+test("RaceRoom: valores do menu Field of view em cm e graus, a partir do rig", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka"); await step2(page, "raceroom");
+  const out = await page.textContent("#out");
+  assert.match(out, /tripleScreen=true/);
+  assert.match(out, /distanceToScreen=71\b/);
+  assert.match(out, /screenSizeMiddle=68\.5[56]\b/);
+  assert.match(out, /screenAngleLeft=56\b/);
+  assert.match(out, /screenBezelMiddle=0\b/);
+  assert.match(out, /tripleScreenSeparateSizes=false/);
 });

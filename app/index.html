@@ -352,6 +352,7 @@ const GAMES = [
   { k: "ets2", name: "Euro Truck Simulator 2", sub: "Needs Surround on" },
   { k: "ats", name: "American Truck Simulator", sub: "Needs Surround on" },
   { k: "iracing", name: "iRacing", sub: "3 screens · 7 settings" },
+  { k: "raceroom", name: "RaceRoom Racing Experience", sub: "Needs Surround on · multiview" },
   { k: "msfs", name: "Microsoft Flight Simulator 2024", sub: "Without Surround · 3 windows" },
 ];
 let game = "msfs";
@@ -526,12 +527,25 @@ function invalidate(errsHtml = "") {
   $("copy").disabled = true; $("next").disabled = false;
   pv = null; renderPreview();
 }
+// Vista de cima provisória: desenha logo que haja tamanhos, ângulos e distância, mesmo sem resoluções (não mudam a geometria).
+function previewTop(i) {
+  try {
+    const a = [i.left.hinge_deg, i.right.hinge_deg];
+    if (!(i.dist >= 150 && i.dist <= 3000) || a.some((x) => !(x >= 0 && x <= 90))) return;
+    const [aw, ah] = $("aspect").value.split(":").map(Number);
+    const fix = (m) => ({ ...m, res_px: m.res_px.map((x, n) => (Number.isInteger(x) && x >= 240 ? x : n === 0 ? Math.round((1080 * aw) / ah) : 1080)), diagonal_in: m.diagonal_in == null && m.width_mm == null ? null : m.diagonal_in });
+    const c = fix(i.center), l = { ...fix(i.left), gap_mm: i.left.gap_mm ?? 0, desktop_gap_px: 0 }, r = { ...fix(i.right), gap_mm: i.right.gap_mm ?? 0, desktop_gap_px: 0 };
+    for (const m of [c, l, r]) if (m.width_mm == null && !(m.diagonal_in >= 10)) return;
+    const rig = E.buildRow(c, [l], [r], i.dist, i.eyeUp ?? 0, 0);
+    $("topview").innerHTML = topView(rig);
+  } catch (e) { /* sem dados suficientes para desenhar */ }
+}
 function render() { try { renderInner(); } catch (e) { invalidate(); $("alerts").innerHTML += `<div class="alert err">${esc(T("Internal calculation error"))}: ${esc(e.message)}</div>`; } }
 function renderInner() {
   const i = readInputs(), v = validate(i);
   const al = [...v.errs.map((e) => `<div class="alert err">${esc(e)}</div>`), ...v.warns.map((w) => `<div class="alert">${esc(w)}</div>`), ...v.notes.map((n) => `<div class="alert info">${esc(n)}</div>`)].join("");
   $("alerts").innerHTML = al; $("alerts2").innerHTML = v.errs.length ? `<div class="alert err">${esc(T("Fix the measurements in step 1 first."))}</div>` : "";
-  if (v.errs.length) { invalidate(); return; }
+  if (v.errs.length) { invalidate(); previewTop(i); return; }
   for (const s of [i.left, i.right]) s.desktop_gap_px = $("pxGap").checked ? Math.round(s.gap_mm * s.res_px[0] / E.specSize({ ...s, curve_radius_mm: null })[0]) : 0;
   let rig;
   try { rig = E.buildRow(i.center, [i.left], [i.right], i.dist, i.eyeUp, 0); }
@@ -555,6 +569,19 @@ function renderInner() {
     values = { ...p.setup, ViewingDist: p.viewingDistance };
     steps = [T("Turns on one projection per monitor (RenderViewPerMonitor=1)."), T("Writes the monitor width, bezels and side angle; iRacing calculates the geometry from them."), T("Writes the viewing distance for the FOV calculator.")];
     limit = T("iRacing only accepts equal monitors and the same angle on both sides.");
+  } else if (game === "raceroom") {
+    // RaceRoom: menu "Field of view" (graphics_options.xml), em cm e graus. Diagonal da área visível de cada ecrã.
+    const diagCm = (m) => { const [w, h] = E.specSize({ ...m, curve_radius_mm: null }); return Math.hypot(w, h) / 10; };
+    const dC = diagCm(i.center), dL = diagCm(i.left), dR = diagCm(i.right), sep = Math.max(dC, dL, dR) - Math.min(dC, dL, dR) > 0.1;
+    const mean = (dC + dL + dR) / 3, r2 = (x) => +x.toFixed(2);
+    const surroundBezel = $("pxGap").checked, bez = surroundBezel ? 0 : r2(i.left.gap_mm / 2 / 10);
+    values = { distanceToScreen: r2(i.dist / 10), screenSizeMiddle: r2(sep ? dC : mean), screenSizeLeft: r2(sep ? dL : mean), screenSizeRight: r2(sep ? dR : mean),
+      screenBezelMiddle: bez, screenBezelLeft: bez, screenBezelRight: bez, screenAngleLeft: r2(i.left.hinge_deg), screenAngleRight: r2(i.right.hinge_deg), tripleScreenSeparateSizes: sep ? "true" : "false" };
+    title = "graphics_options.xml";
+    text = `tripleScreen=true\nadvancedFov=true\n` + Object.entries(values).map(([k, val]) => `${k}=${val}`).join("\n");
+    note = F("File in Documents\\My Games\\SimBin\\RaceRoom Racing Experience\\UserData\\. Distance and screen sizes in centimetres. The game resolution should be the Surround area ({0}×{1}).", i.left.res_px[0] + i.center.res_px[0] + i.right.res_px[0] + (i.left.desktop_gap_px || 0) + (i.right.desktop_gap_px || 0), i.center.res_px[1]);
+    steps = [T("Turns on triple screen (multiview) and the advanced field of view: each screen gets its own image."), T("Writes the distance to the screen, the size of each screen and the side angles, in the game's own units (cm and degrees)."), surroundBezel ? T("Bezels at 0: Surround already hides them (bezel correction), so they are not corrected twice.") : T("Writes the bezels from the gap between screens (not yet tested without Surround bezel correction).")];
+    limit = T("Needs NVIDIA Surround (or AMD Eyefinity) turned on and the game set to the full Surround resolution.");
   } else {
     const hs = String(msfsOpt.hfov).trim(), userH = hs === "" ? null : Number(hs.replace(",", "."));
     const optHtml = (hide) => `<div class="panel stack">
@@ -631,9 +658,13 @@ $("form").addEventListener("submit", (e) => e.preventDefault());
 // pontas = caixa do central + 2 × caixa do lateral × cos(ângulo). As caixas vêm das fichas (Detetar monitores) ou de cima.
 function caseWidths() {
   let a = parseFloat($("tA").value), b = parseFloat($("tB").value), est = false;
-  const g = parseFloat($("gap").value) || 0;
-  if (!(a > 0)) { const w = parseFloat($("wC").value); if (w > 0) { a = ($("curvC").checked && parseFloat($("rC").value) ? E.chordFromArc(w, parseFloat($("rC").value))[0] : w) + g; est = true; } }
-  if (!(b > 0)) { const w = (parseFloat($("wL").value) + parseFloat($("wR").value)) / 2 || parseFloat($("wL").value) || parseFloat($("wR").value); if (w > 0) { b = w + g; est = true; } }
+  // Sem medidas: largura visível pela diagonal e proporção; sem folga: ~12 mm (duas molduras finas).
+  const [aw, ah] = $("aspect").value.split(":").map(Number), dg = parseFloat(String($("diag").value).replace(",", "."));
+  const fromDiag = dg > 0 && aw > 0 ? (dg * 25.4 * aw) / Math.hypot(aw, ah) : null;
+  const gg = parseFloat(String($("gap").value).replace(",", ".")); const gE = gg >= 0 ? gg : 12;
+  const vis = (k) => parseFloat(String($("w" + k).value).replace(",", ".")) || fromDiag;
+  if (!(a > 0)) { const w = vis("C"); if (w > 0) { a = ($("curvC").checked && parseFloat($("rC").value) ? E.chordFromArc(w, parseFloat($("rC").value))[0] : w) + gE; est = true; } }
+  if (!(b > 0)) { const wl = vis("L"), wr = vis("R"), w = wl && wr ? (wl + wr) / 2 : wl || wr; if (w > 0) { b = w + gE; est = true; } }
   return [a, b, est];
 }
 function spanAngle(write) {

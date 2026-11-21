@@ -1,11 +1,11 @@
-**First public Beta of OZPanorama.** Triple monitors done right in MSFS 2024, ETS2, ATS and iRacing.
+**OZPanorama {VERSION}**
 
-- Calculation from your real rig measurements, preview of every change, checked backup, atomic write and restore.
-- Detect monitors (also with NVIDIA Surround on), bezels from Surround or the manufacturers' sheets.
-- Side angle from the distance between the outer ends of the left and right monitors.
-- Top view to scale with a head in real proportions.
-- NVIDIA Surround on/off with one click (driver profiles, confirmation, automatic rollback in 20 s).
-- English, Português (Brasil), Español, Français.
+### New
+- **RaceRoom Racing Experience**: triple screen (multiview) set up from your rig measurements - distance, screen sizes, bezels and side angles written to `graphics_options.xml`, with preview, checked backup and restore. Tested on the author's rig with NVIDIA Surround.
+
+### Fixed
+- The side angle from the outer-ends distance now works with only the monitor diagonal (no exact widths needed).
+- The top view is drawn as soon as there are sizes, angles and distance, even before the resolutions are filled in.
 
 ### Install
 Download **OZPanorama-{VERSION}.zip**, extract it to a folder of your own and open `OZPanorama.exe`. No install needed.

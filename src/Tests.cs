@@ -205,6 +205,30 @@ namespace OZPanorama.Tests
                 Throws("format", () => Ops.MakePreview("iracing", vals), "B/iRacing: ficheiro sem as chaves recusado");
             }
 
+            // ---------- RaceRoom ----------
+            {
+                var docs = Fresh("docs_r3e"); var dir = Path.Combine(docs, "My Games", "SimBin", "RaceRoom Racing Experience", "UserData"); Directory.CreateDirectory(dir);
+                var f = Path.Combine(dir, "graphics_options.xml");
+                Func<string, string, string, string> L = (k, t, val) => "  <" + k + " type=\"" + t + "\">" + val + "</" + k + ">\r\n";
+                Func<string, string, string, string, string, string, string> X = (dist, size, bez, ang, tri, sep) =>
+                    "<game__GraphicsOptions ID=\"/options/graphics\">\r\n" + L("screenWidth", "uint32", "5838") + L("fovScale", "float32", "1.00000000") +
+                    L("advancedFov", "bool", tri) + L("distanceToScreen", "float32", dist) + L("eyeHeightOffset", "float32", "0.00000000") +
+                    L("screenSizeMiddle", "float32", size) + L("screenSizeLeft", "float32", size) + L("screenSizeRight", "float32", size) +
+                    L("screenBezelMiddle", "float32", bez) + L("screenBezelLeft", "float32", bez) + L("screenBezelRight", "float32", bez) +
+                    L("screenAngleLeft", "float32", ang) + L("screenAngleRight", "float32", ang) + L("tripleScreen", "bool", tri) +
+                    L("tripleScreenAdvancedCulling", "bool", "true") + L("tripleScreenSeparateSizes", "bool", sep) + "</game__GraphicsOptions>\r\n";
+                File.WriteAllText(f, X("80.00000000", "69.77307129", "0.00000000", "20.00000000", "false", "false"));
+                ((RaceRoom)Registry.Get("raceroom")).Root = docs;
+                var vals = new Dictionary<string, object> { { "distanceToScreen", 71.0 }, { "screenSizeMiddle", 68.55 }, { "screenSizeLeft", 68.55 }, { "screenSizeRight", 68.55 },
+                    { "screenBezelMiddle", 0.0 }, { "screenBezelLeft", 0.0 }, { "screenBezelRight", 0.0 }, { "screenAngleLeft", 56.0 }, { "screenAngleRight", 56.0 }, { "tripleScreenSeparateSizes", "false" } };
+                var r = Go("raceroom", vals);
+                Check(r.Ok && File.ReadAllText(f) == X("71.00000000", "68.55000000", "0.00000000", "56.00000000", "true", "false"), "A/RaceRoom: só as chaves de triplos mudam, formato e CRLF intactos");
+                vals["screenAngleLeft"] = 95.0;
+                Throws("input", () => Ops.MakePreview("raceroom", vals), "B/RaceRoom: ângulo fora do intervalo recusado");
+                File.WriteAllText(f, "<game__GraphicsOptions ID=\"/options/graphics\">\r\n</game__GraphicsOptions>\r\n"); vals["screenAngleLeft"] = 56.0;
+                Throws("format", () => Ops.MakePreview("raceroom", vals), "B/RaceRoom: ficheiro sem as chaves recusado");
+            }
+
             // ---------- Backups nunca sobrescritos ----------
             {
                 var f = Path.Combine(Fresh("unicos"), "UserCfg.opt"); File.WriteAllText(f, MsfsSample("\r\n")); Msfs(f);
