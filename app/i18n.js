@@ -1711,6 +1711,12 @@ export const ROWS = [
 "Precisa do Surround · multiview",
 "Necesita Surround · multiview",
 "Surround requis · multiview"
+],
+  [
+"iRacing uses one angle for both sides: it will use the average, {0}°. Set both sides to the same angle for an exact result.",
+"O iRacing usa um só ângulo para os dois lados: vai usar a média, {0}°. Ponha o mesmo ângulo nos dois lados para um resultado exato.",
+"iRacing usa un solo ángulo para los dos lados: usará la media, {0}°. Pon el mismo ángulo en los dos lados para un resultado exacto.",
+"iRacing utilise un seul angle pour les deux côtés : il utilisera la moyenne, {0}°. Mettez le même angle des deux côtés pour un résultat exact."
 ]
 ];
 export function makeT(code) {

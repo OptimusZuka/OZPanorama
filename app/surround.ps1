@@ -3,7 +3,7 @@
 # Guarda a configuração de ecrãs atual TAL COMO O DRIVER A DESCREVE (NvAPI_Mosaic_EnumDisplayGrids) e repõe-na
 # mais tarde (NvAPI_Mosaic_ValidateDisplayGrids + NvAPI_Mosaic_SetDisplayGrids). Nada é construído à mão: o
 # programa só repõe o que o próprio driver devolveu, com as molduras incluídas.
-# Segurança: valida antes de aplicar; depois de aplicar pede confirmação e, sem resposta em 15 s, repõe o anterior.
+# Segurança: valida antes de aplicar; depois de aplicar pede confirmação e, sem resposta em 20 s, repõe o anterior.
 #
 # Fontes (docs.nvidia.com/nvapi, release 590; github.com/NVIDIA/nvapi, nvapi_interface.h):
 #   NV_MOSAIC_GRID_TOPO_V2 = version, rows, columns, displayCount, bitfields (32 bits),
@@ -17,8 +17,8 @@
 #
 # Uso: powershell -File surround.ps1 -Action status
 #      powershell -File surround.ps1 -Action save  -Perfil com|sem
-#      powershell -File surround.ps1 -Action apply -Perfil com|sem [-RequestId x]
-param([string]$Action = '', [string]$Perfil = '', [string]$RequestId = '')
+#      powershell -File surround.ps1 -Action apply -Perfil com|sem [-RequestId x] [-Lang en|pt-BR|es|fr]
+param([string]$Action = '', [string]$Perfil = '', [string]$RequestId = '', [string]$Lang = 'pt-BR')
 
 $ErrorActionPreference = 'Stop'
 $SurDocs = [Environment]::GetFolderPath('MyDocuments')
@@ -373,10 +373,17 @@ function SurAskKeep([int]$seconds, [string]$rid) {
   $f.FormBorderStyle = 'FixedDialog'; $f.MaximizeBox = $false; $f.MinimizeBox = $false
   $f.ClientSize = New-Object Drawing.Size(420, 150); $f.BackColor = [Drawing.Color]::FromArgb(11, 11, 12); $f.ForeColor = [Drawing.Color]::White
   $lbl = New-Object Windows.Forms.Label; $lbl.SetBounds(16, 16, 390, 60); $lbl.Font = New-Object Drawing.Font('Segoe UI', 11)
-  $keep = New-Object Windows.Forms.Button; $keep.Text = 'Manter'; $keep.SetBounds(196, 96, 100, 34); $keep.BackColor = [Drawing.Color]::FromArgb(245, 196, 0); $keep.ForeColor = [Drawing.Color]::Black; $keep.FlatStyle = 'Flat'
-  $back = New-Object Windows.Forms.Button; $back.Text = 'Repor'; $back.SetBounds(306, 96, 100, 34); $back.FlatStyle = 'Flat'
+  $tx = @{
+    'en'    = @('Keep', 'Revert', "Are the screens OK?`nWith no answer, OZPanorama puts back the previous setup in {0} s.")
+    'pt-BR' = @('Manter', 'Repor', "As telas estão boas?`nSem resposta, o OZPanorama volta à configuração anterior em {0} s.")
+    'es'    = @('Mantener', 'Revertir', "¿Están bien las pantallas?`nSin respuesta, OZPanorama vuelve a la configuración anterior en {0} s.")
+    'fr'    = @('Garder', 'Annuler', "Les écrans sont-ils corrects ?`nSans réponse, OZPanorama rétablit la configuration précédente dans {0} s.")
+  }
+  $t3 = if ($tx.ContainsKey($Lang)) { $tx[$Lang] } else { $tx['en'] }
+  $keep = New-Object Windows.Forms.Button; $keep.Text = $t3[0]; $keep.SetBounds(196, 96, 100, 34); $keep.BackColor = [Drawing.Color]::FromArgb(245, 196, 0); $keep.ForeColor = [Drawing.Color]::Black; $keep.FlatStyle = 'Flat'
+  $back = New-Object Windows.Forms.Button; $back.Text = $t3[1]; $back.SetBounds(306, 96, 100, 34); $back.FlatStyle = 'Flat'
   $state = @{ left = $seconds; keep = $false }
-  $upd = { $lbl.Text = "Os ecrãs estão bem?`nSem resposta, o OZPanorama repõe a configuração anterior em $($state.left) s." }
+  $upd = { $lbl.Text = ($t3[2] -f $state.left) }
   & $upd
   $t = New-Object Windows.Forms.Timer; $t.Interval = 1000
   $t.Add_Tick({

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Web.Script.Serialization;
 
 namespace OZPanorama.Tests
 {
@@ -36,7 +37,7 @@ namespace OZPanorama.Tests
 
         static Msfs2024 Msfs(string file) { var g = (Msfs2024)Registry.Get("msfs"); g.OverridePath = file; return g; }
         static ScsGame Ets(string docs) { var g = (ScsGame)Registry.Get("ets2"); g.Root = docs; g.ScreensProvider = () => new List<int[]> { new[] { 5760, 1080, 0, 0, 1 } }; return g; }
-        const string Sii = "SiiNunit\n{\nmultimon_config : _nameless.1 {\n normal_views: 3\n}\n}";
+        const string Sii = "SiiNunit\n{\nmultimon_config : _nameless.ozp.view {\n normalized_ui_x: 0.000000\n normalized_ui_width: 1.000000\n monitors: 1\n monitors[0]: _nameless.ozp.mon0\n}\n\nmonitor_config : _nameless.ozp.mon0 {\n name: center\n heading_offset: -55.873000\n camera_space_offset: (0.000000, 0.000000, 0.000000)\n render_interior: true\n}\n}";
 
         // Fluxo completo da interface: pré-visualização → backup → confirmação → aplicar.
         static Ops.ApplyResult Go(string game, Dictionary<string, object> v)
@@ -51,7 +52,7 @@ namespace OZPanorama.Tests
         {
             Root = Path.Combine(Path.GetTempPath(), "ozp_testes_" + Guid.NewGuid().ToString("N").Substring(0, 8));
             Directory.CreateDirectory(Root);
-            AppInfo.DataDir = Path.Combine(Root, "dados"); BackupStore.Root = Path.Combine(AppInfo.DataDir, "backups");
+            AppInfo.DataDir = Path.Combine(Root, "dados"); BackupStore.Root = Path.Combine(AppInfo.DataDir, "backups"); AppInfo.LocalDir = Path.Combine(Root, "local");
             Console.OutputEncoding = Encoding.UTF8;
             try { Run(); }
             catch (Exception e) { fail++; Console.WriteLine("ERRO INESPERADO " + e); }
@@ -227,6 +228,42 @@ namespace OZPanorama.Tests
                 Throws("input", () => Ops.MakePreview("raceroom", vals), "B/RaceRoom: ângulo fora do intervalo recusado");
                 File.WriteAllText(f, "<game__GraphicsOptions ID=\"/options/graphics\">\r\n</game__GraphicsOptions>\r\n"); vals["screenAngleLeft"] = 56.0;
                 Throws("format", () => Ops.MakePreview("raceroom", vals), "B/RaceRoom: ficheiro sem as chaves recusado");
+            }
+
+            // ---------- Auditoria 0.1.3 ----------
+            {
+                // M5: só o formato exato do .sii gerado pelo motor é aceite.
+                Check(ScsGame.SiiValid(Sii), "M5/.sii gerado aceite");
+                Check(!ScsGame.SiiValid(Sii.Replace(" name: center", " name: center\n camera_fov: 1")), "M5/.sii com chave estranha recusado");
+                Check(!ScsGame.SiiValid(Sii.Replace("-55.873000", "-55.873000;x")), "M5/.sii com valor não numérico recusado");
+                Check(!ScsGame.SiiValid(Sii.Replace("monitor_config : _nameless.ozp.mon0 {", "outra_coisa : x {")), "M5/.sii com bloco estranho recusado");
+
+                // M1: um ficheiro mudado por outro programa a meio da aplicação não é reposto por cima.
+                var docs = Fresh("docs_m1"); var dir = Path.Combine(docs, "Euro Truck Simulator 2"); Directory.CreateDirectory(dir);
+                var cfg = Path.Combine(dir, "config.cfg"); File.WriteAllText(cfg, "uset r_multimon_mode \"0\"\r\n"); Ets(docs);
+                var sii = Path.Combine(dir, "multimon_config.sii");
+                var pv = Ops.MakePreview("ets2", new Dictionary<string, object> { { "sii", Sii }, { "width", 5760 }, { "height", 1080 } });
+                Ops.Prepare(pv.Id);
+                Faults.OnPoint = pt => { if (pt == "between-files") { Faults.OnPoint = null; File.WriteAllText(cfg, "uset r_multimon_mode \"2\"\r\nuset outro \"1\"\r\n"); } };
+                var r = Ops.Apply(pv.Id, true); Faults.OnPoint = null;
+                Check(!r.Ok && File.ReadAllText(cfg) == "uset r_multimon_mode \"2\"\r\nuset outro \"1\"\r\n", "M1/alteração alheia ao config.cfg preservada");
+                Check(!File.Exists(sii), "M1/.sii criado nesta operação foi retirado");
+                Check(r.Status == "falhou-sem-reposicao", "M1/estado indica que não houve reposição completa");
+
+                // B4: o restauro só aceita caminhos do próprio jogo e nomes de cópia simples.
+                var f = Path.Combine(Fresh("b4"), "UserCfg.opt"); File.WriteAllText(f, MsfsSample("\r\n")); Msfs(f);
+                var ok = Go("msfs", MsfsValues(31, 31, "0"));
+                var man = Path.Combine(ok.Backup.Dir, "manifesto.json"); var txt = File.ReadAllText(man);
+                File.WriteAllText(man, txt.Replace(new JavaScriptSerializer().Serialize(f).Trim('"'), new JavaScriptSerializer().Serialize(Path.Combine(Root, "outro.txt")).Trim('"')));
+                Throws("backup", () => Ops.Restore(ok.Backup.Id, true, true), "B4/restauro com caminho alheio recusado");
+                File.WriteAllText(man, txt.Replace("\"copia\":\"1_UserCfg.opt\"", "\"copia\":\"..\\\\..\\\\x\""));
+                Throws("backup", () => BackupStore.Find(ok.Backup.Id), "B4/nome de cópia com .. recusado");
+                File.WriteAllText(man, txt);
+
+                // B5: anonimização sem diferença de maiúsculas.
+                var prof = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                var an = Report.Anonymize(prof.ToUpperInvariant() + @"\Documents\x.cfg");
+                Check(!an.ToUpperInvariant().Contains(prof.ToUpperInvariant()), "B5/perfil anonimizado mesmo com outras maiúsculas");
             }
 
             // ---------- Backups nunca sobrescritos ----------

@@ -1,4 +1,4 @@
-// OZPanorama · Zuka Force — núcleo seguro de escrita (Beta 0.1)
+// OZPanorama · Zuka Force — núcleo seguro de escrita (Beta 0.1.3)
 // Autor: OptimusZuka. C# 5 (.NET Framework 4.x, compilável com o csc.exe que vem com o Windows).
 //
 // Regras (docs/PLANO_SEGURANCA_BETA01.md):
@@ -20,15 +20,24 @@ namespace OZPanorama
 {
     public static class AppInfo
     {
-        public const string Version = "0.1.2-beta";
+        public const string Version = "0.1.3-beta";
         public static string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OZPanorama");
         public static string BackupDir { get { return Path.Combine(DataDir, "backups"); } }
+        /// <summary>Ficheiros só do programa (perfil da janela do Edge, script do Surround): fora dos Documentos, que podem estar no OneDrive.</summary>
+        public static string LocalDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OZPanorama");
+        static readonly object logGate = new object();
         public static void Log(string msg)
         {
             try
             {
-                Directory.CreateDirectory(DataDir);
-                File.AppendAllText(Path.Combine(DataDir, "log.txt"), DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + msg + Environment.NewLine, new UTF8Encoding(false));
+                lock (logGate)
+                {
+                    Directory.CreateDirectory(DataDir);
+                    var f = Path.Combine(DataDir, "log.txt");
+                    // Rotação: a partir de 1 MB o registo passa a log.1.txt (só o registo; backups nunca são tocados).
+                    if (File.Exists(f) && new FileInfo(f).Length > 1024 * 1024) { var old = Path.Combine(DataDir, "log.1.txt"); if (File.Exists(old)) File.Delete(old); File.Move(f, old); }
+                    File.AppendAllText(f, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + msg + Environment.NewLine, new UTF8Encoding(false));
+                }
             }
             catch { }
         }
@@ -49,6 +58,9 @@ namespace OZPanorama
         // Cada falha dispara uma só vez (a recuperação que vem a seguir tem de poder escrever).
         public static void Hit(string point) { if (Active == point) { Active = null; throw new IOException("Falha injetada: " + point); } }
         public static bool Is(string point) { if (Active != point) return false; Active = null; return true; }
+        /// <summary>Teste: corre uma ação (ex.: outro programa mudar um ficheiro) no ponto indicado.</summary>
+        public static Action<string> OnPoint;
+        public static void HitAction(string point) { var a = OnPoint; if (a != null) a(point); }
     }
 
     public static class Hash
@@ -274,6 +286,14 @@ namespace OZPanorama
             SafeIO.AtomicWrite(System.IO.Path.Combine(Dir, "manifesto.json"), new UTF8Encoding(false).GetBytes(json));
         }
 
+        /// <summary>O nome da cópia no manifesto tem de ser só um nome de ficheiro, dentro da pasta do backup.</summary>
+        static string PlainName(string n)
+        {
+            if (string.IsNullOrEmpty(n) || n != System.IO.Path.GetFileName(n) || n == "." || n == ".." || n.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0)
+                throw new OzError("backup", "O registo do backup está danificado (nome de cópia inválido).", n);
+            return n;
+        }
+
         public static Backup Load(string dir)
         {
             var m = (Dictionary<string, object>)new JavaScriptSerializer().DeserializeObject(File.ReadAllText(System.IO.Path.Combine(dir, "manifesto.json"), Encoding.UTF8));
@@ -285,7 +305,7 @@ namespace OZPanorama
             foreach (Dictionary<string, object> f in (object[])m["ficheiros"])
                 b.Files.Add(new BackupFile
                 {
-                    Original = (string)f["caminho"], Existed = (bool)f["existia"], Copy = f["copia"] == null ? null : System.IO.Path.Combine(dir, (string)f["copia"]),
+                    Original = (string)f["caminho"], Existed = (bool)f["existia"], Copy = f["copia"] == null ? null : System.IO.Path.Combine(dir, PlainName((string)f["copia"])),
                     ShaOriginal = (string)f["shaOriginal"], ShaApplied = (string)f["shaAplicado"], Bytes = Convert.ToInt64(f["bytes"])
                 });
             return b;
