@@ -265,6 +265,32 @@ test("Sem medidas exatas: o ângulo sai da diagonal e a vista de cima aparece an
   assert.ok((await page.innerHTML("#topview")).includes("<svg"), "vista de cima desenhada");
 });
 
+test("Distância das pontas em centímetros (131) é lida como 1310 mm", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka");
+  await page.fill("#tD", "131");
+  assert.match(await page.$eval("#angL", (i) => i.value), /^5\d\.\d$/);
+  assert.match(await page.textContent("#tDOut"), /1310/);
+});
+
+test("Rig guardado com a distância das pontas e sem ângulos: o ângulo é calculado ao abrir", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka");
+  await page.evaluate(() => { const r = JSON.parse(localStorage.getItem("ozp.rig")); r.v.tD = "131"; r.v.angL = ""; r.v.angR = ""; localStorage.setItem("ozp.rig", JSON.stringify(r)); });
+  await page.reload();
+  assert.match(await page.$eval("#angL", (i) => i.value), /^5\d\.\d$/);
+});
+
+test("Vista de cima aparece sem a distância dos olhos, e explica o que falta sem o ângulo", async () => {
+  const { page } = await app();
+  await page.click("#presetClear");
+  await setField(page, "diag", 27);
+  assert.ok(!(await page.innerHTML("#topview")).includes("<svg"));
+  assert.match(await page.textContent("#topview"), /\S/, "diz o que falta");
+  await page.fill("#tD", "1300");
+  assert.ok((await page.innerHTML("#topview")).includes("<svg"), "desenhada com a cabeça provisória");
+});
+
 test("RaceRoom: valores do menu Field of view em cm e graus, a partir do rig", async () => {
   const { page } = await app();
   await page.click("#presetZuka"); await step2(page, "raceroom");

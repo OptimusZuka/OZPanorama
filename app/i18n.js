@@ -1527,6 +1527,24 @@ export const ROWS = [
 "Saisissez d'abord la largeur des écrans (ou utilisez Détecter les écrans)."
 ],
   [
+"The drawing appears when the angle of the sides is known: enter the distance between the outer ends, or the angles.",
+"O desenho aparece quando o ângulo dos laterais for conhecido: preencha a distância entre as pontas de fora, ou os ângulos.",
+"El dibujo aparece cuando se conoce el ángulo de los laterales: introduce la distancia entre los extremos exteriores, o los ángulos.",
+"Le dessin apparaît quand l'angle des côtés est connu : saisissez la distance entre les extrémités extérieures, ou les angles."
+],
+  [
+"Head drawn at 650 mm for now: enter the distance from your eyes to the center screen.",
+"Cabeça desenhada a 650 mm por enquanto: preencha a distância dos olhos até a tela central.",
+"Cabeza dibujada a 650 mm por ahora: introduce la distancia de los ojos a la pantalla central.",
+"Tête dessinée à 650 mm pour l'instant : saisissez la distance des yeux à l'écran central."
+],
+  [
+"Read as {0} cm = {1} mm.",
+"Lido como {0} cm = {1} mm.",
+"Leído como {0} cm = {1} mm.",
+"Lu comme {0} cm = {1} mm."
+],
+  [
 "This distance does not fit these monitors. Check it.",
 "Essa distância não bate com estes monitores. Confira.",
 "Esta distancia no encaja con estos monitores. Revísala.",

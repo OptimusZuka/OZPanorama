@@ -193,7 +193,7 @@
         </fieldset>
         <fieldset>
           <legend data-t="Mounting"></legend>
-          <label class="full"><span data-t="Distance between the outer ends of the left and right monitors (mm)"></span><input id="tD" type="number" step="1" min="300" max="4000"></label>
+          <label class="full"><span data-t="Distance between the outer ends of the left and right monitors (mm)"></span><input id="tD" type="number" step="any" min="30" max="4000"></label>
           <p class="note full" id="tDOut"></p>
           <p class="note full" data-t="Measure in a straight line from the outer end of the left monitor to the outer end of the right monitor, at the front top corners. The angle of each side appears by itself."></p>
           <input id="tA" type="hidden"><input id="tB" type="hidden">
@@ -532,13 +532,16 @@ function invalidate(errsHtml = "") {
 function previewTop(i) {
   try {
     const a = [i.left.hinge_deg, i.right.hinge_deg];
-    if (!(i.dist >= 150 && i.dist <= 3000) || a.some((x) => !(x >= 0 && x <= 90))) return;
+    const wait = (msg) => { $("topview").innerHTML = `<p class="note">${esc(T(msg))}</p>`; };
+    if (a.some((x) => typeof x !== "number" || !(x >= 0 && x <= 90))) return wait("The drawing appears when the angle of the sides is known: enter the distance between the outer ends, or the angles.");
+    // Sem a distância dos olhos ainda: desenha os monitores com a cabeça a 650 mm, avisando que é provisório.
+    const noDist = !(i.dist >= 150 && i.dist <= 3000); if (noDist) i = { ...i, dist: 650 };
     const [aw, ah] = $("aspect").value.split(":").map(Number);
     const fix = (m) => ({ ...m, res_px: m.res_px.map((x, n) => (Number.isInteger(x) && x >= 240 ? x : n === 0 ? Math.round((1080 * aw) / ah) : 1080)), diagonal_in: m.diagonal_in == null && m.width_mm == null ? null : m.diagonal_in });
     const c = fix(i.center), l = { ...fix(i.left), gap_mm: i.left.gap_mm ?? 0, desktop_gap_px: 0 }, r = { ...fix(i.right), gap_mm: i.right.gap_mm ?? 0, desktop_gap_px: 0 };
     for (const m of [c, l, r]) if (m.width_mm == null && !(m.diagonal_in >= 10)) return;
     const rig = E.buildRow(c, [l], [r], i.dist, i.eyeUp ?? 0, 0);
-    $("topview").innerHTML = topView(rig);
+    $("topview").innerHTML = topView(rig) + (noDist ? `<p class="note">${esc(T("Head drawn at 650 mm for now: enter the distance from your eyes to the center screen."))}</p>` : "");
   } catch (e) { /* sem dados suficientes para desenhar */ }
 }
 function render() { try { renderInner(); } catch (e) { invalidate(); $("alerts").innerHTML += `<div class="alert err">${esc(T("Internal calculation error"))}: ${esc(e.message)}</div>`; } }
@@ -669,15 +672,18 @@ function caseWidths() {
   return [a, b, est];
 }
 function spanAngle(write) {
-  const d = parseFloat($("tD").value);
+  let d = parseFloat(String($("tD").value).replace(",", "."));
   if (!(d > 0)) { $("tDOut").textContent = ""; return null; }
   const [a, b, est] = caseWidths();
   if (!(a > 0 && b > 0)) { $("tDOut").textContent = T("Enter the monitor widths first (or use Detect monitors)."); return null; }
+  // Medida em centímetros (ex.: 131 em vez de 1310): três monitores nunca cabem em menos de 30 cm.
+  let cm = false;
+  if (d < 300) { const c10 = (d * 10 - a) / (2 * b); if (c10 <= 1 && c10 >= -0.2) { d *= 10; cm = true; } }
   let c = (d - a) / (2 * b);
   if (c > 1 && c < 1 + 1e-9) c = 1;   // monitores alinhados (0°): arredondamento de vírgula flutuante
   if (c > 1 || c < -0.2) { $("tDOut").textContent = T("This distance does not fit these monitors. Check it."); return null; }
   const v = (Math.acos(c) * 180) / Math.PI, u = (180 / Math.PI) / (2 * b * Math.sqrt(Math.max(1e-6, 1 - c * c)));
-  $("tDOut").textContent = F("Angle of each side: {0}° (±{1}° per mm of error). Cases: center {2} mm, sides {3} mm.", f1(v), u.toFixed(2).replace(".", lang === "en" ? "." : ","), f1(a), f1(b)) + (est ? " " + T("Case widths estimated from the visible area plus the gap. Detect monitors gives the exact ones.") : "");
+  $("tDOut").textContent = F("Angle of each side: {0}° (±{1}° per mm of error). Cases: center {2} mm, sides {3} mm.", f1(v), u.toFixed(2).replace(".", lang === "en" ? "." : ","), f1(a), f1(b)) + (cm ? " " + F("Read as {0} cm = {1} mm.", f1(d / 10), f1(d)) : "") + (est ? " " + T("Case widths estimated from the visible area plus the gap. Detect monitors gives the exact ones.") : "");
   if (write) { $("angL").value = $("angR").value = v.toFixed(1); }
   return v;
 }
@@ -1037,6 +1043,8 @@ setInterval(async () => {
 // ---------------- Início ----------------
 lang = pickLang(); T = makeT(lang);
 if (!loadRig()) { for (const [id, v] of Object.entries(EMPTY)) $(id).value = v; }
+// Distância das pontas guardada sem ângulo (ex.: escrita em cm numa versão anterior): calcula agora.
+if ($("tD").value && !($("angL").value && $("angR").value)) spanAngle(true);
 refreshInfo().then(() => {
   let hasRig = false; try { hasRig = !!localStorage.getItem("ozp.rig"); } catch {}
   if (!appInfo && !hasRig) applyPreset("zuka");   // sem o programa (página de demonstração): mostra o exemplo

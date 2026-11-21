@@ -1,14 +1,11 @@
-**OZPanorama {VERSION}** - its own app window, new icon and a monitor detection fix for NVIDIA Surround.
-
-### New
-- OZPanorama now opens in its own window (Microsoft WebView2, already part of Windows 10/11) instead of a browser window, with its own icon on the taskbar. No extra files are installed. If WebView2 is missing, it falls back to the Edge app window, as before.
-- Sharper app icon at every size (16 to 256 px).
+**OZPanorama {VERSION}** - side angle and top view fixes.
 
 ### Fixed
-- With NVIDIA Surround on, the same monitor no longer appears several times. Windows keeps old entries for every port a monitor was ever plugged into, and some of them carry a shorter EDID. Monitors are now grouped by their EDID identity (maker, model, serial, date, size), and with Surround on one copy is counted per port where that model was seen, so three identical monitors still count as three.
-- Monitors hidden inside Surround are shown as "state unknown", never as "not connected now?".
+- The distance between the outer ends of the left and right monitors can now be typed in centimetres too (131 is read as 131 cm = 1310 mm). Before, a value in cm only showed "This distance does not fit these monitors".
+- A distance saved without an angle is calculated again when the app opens.
+- The top view now appears as soon as the side angle is known, with the head drawn at 650 mm until you enter your eye distance. Without the angle, it says what is missing.
 
-Also includes everything from 0.1.4 and 0.1.3.
+Also includes 0.1.5 (own app window, new icon, monitor detection with NVIDIA Surround).
 
 ### Downloads
 - **OZPanorama_Setup_{VERSION}.exe** - installer (English, Português, Español, Français), for your user only, no administrator rights. Uninstalling never deletes the backups in `Documents\OZPanorama\backups`.
