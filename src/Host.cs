@@ -396,6 +396,14 @@ namespace OZPanorama
             }
             if (method == "GET" && (path == "/engine.js" || path == "/i18n.js")) { SendRaw(c, "text/javascript; charset=utf-8", Encoding.UTF8.GetBytes(Resource(path.Substring(1)))); return; }
             if (method == "GET" && path == "/assets/icone.png") { var b = ResourceBytes("icone.png"); if (b != null) { SendRaw(c, "image/png", b); return; } }
+            if (method == "GET" && path.StartsWith("/assets/jogos/"))
+            {
+                // Só nomes da lista fixa: nada de caminhos vindos do pedido.
+                var id = path.Substring(14);
+                if (new[] { "ets2.jpg", "ats.jpg", "iracing.jpg", "raceroom.jpg", "ac.jpg", "lmu.jpg", "msfs.jpg" }.Contains(id))
+                { var b = ResourceBytes("jogo." + id); if (b != null) { SendRaw(c, "image/jpeg", b); return; } }
+                c.Response.StatusCode = 404; c.Response.Close(); return;
+            }
             if (!path.StartsWith("/api/")) { c.Response.StatusCode = 404; c.Response.Close(); return; }
 
             if (c.Request.Headers["X-OZP-Token"] != Token) { Send(c, 403, new Dictionary<string, object> { { "ok", false }, { "error", "Pedido recusado." } }); return; }

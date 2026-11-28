@@ -3,6 +3,8 @@
 ### New
 - **Two monitors in Euro Truck Simulator 2 and American Truck Simulator** (experimental): choose which monitor is the main one. With the main on the right, the left monitor shows the left window; with the main on the left, the right monitor shows the right window. Uses the game's custom mode (`r_multimon_mode "4"`), the only one that accepts two monitors.
 
+- **Game artwork**: each simulator now has its own picture in the list, in the app's black and yellow style with a color strip per game.
+
 ### Fixed
 - **MSFS 2024**: with "Hide the image behind the bezels" on, the calculated values (above 90) were refused and nothing could be applied.
 - **MSFS 2024 installed on Steam and on the Microsoft Store**: the app now changes the one used last and says which one.
