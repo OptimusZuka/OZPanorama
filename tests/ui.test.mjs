@@ -382,6 +382,29 @@ test("Detetar monitores: dois ecrãs separados com o principal à esquerda escol
   assert.equal(await page.inputValue("#xC"), "2560"); assert.equal(await page.inputValue("#xR"), "1920");
 });
 
+test("Atualizações: aviso da versão nova, abrir a página e 'Agora não'", async () => {
+  const { srv, page } = await app({ setup: (s) => { s.state.update = { ok: true, current: "0.1.8-beta", newer: true, latest: "0.1.9-beta", url: "x" }; } });
+  await page.waitForSelector("#update:not([hidden])");
+  assert.match(await page.textContent("#updText"), /0\.1\.9-beta/);
+  await page.click("#updOpen"); await page.waitForTimeout(200);
+  assert.equal(srv.state.openedRelease, 1);
+  const req = srv.requests.find((r) => r.path === "/api/open-release"); assert.deepEqual(req.body, {}, "a interface não manda endereço nenhum");
+  await page.click("#updLater"); assert.equal(await page.isHidden("#update"), true);
+  await page.reload(); await page.waitForTimeout(600);
+  assert.equal(await page.isHidden("#update"), true, "'Agora não' vale para essa versão");
+});
+
+test("Atualizações: sem versão nova não aparece nada; desligado não pergunta", async () => {
+  const { srv, page } = await app();
+  await page.waitForTimeout(600);
+  assert.equal(await page.isHidden("#update"), true);
+  assert.equal(srv.requests.filter((r) => r.path === "/api/update").length, 1);
+  await page.uncheck("#updChk"); srv.state.update = { ok: true, current: "0.1.8-beta", newer: true, latest: "0.1.9-beta" };
+  await page.reload(); await page.waitForTimeout(600);
+  assert.equal(srv.requests.filter((r) => r.path === "/api/update").length, 1, "desligado: nenhum pedido novo");
+  assert.equal(await page.isChecked("#updChk"), false);
+});
+
 test("Le Mans Ultimate: vistas ajustadas ao modelo do jogo e enviadas ao servidor", async () => {
   const { srv, page } = await app();
   await page.click("#presetZuka"); await step2(page, "lmu");

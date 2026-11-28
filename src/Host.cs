@@ -297,6 +297,78 @@ namespace OZPanorama
         }
     }
 
+    /// <summary>
+    /// Aviso de versão nova. Só quando a interface pede (a pessoa pode desligar): um GET à API pública do GitHub, sem dados
+    /// da pessoa nem do rig. Não descarrega nem instala nada; o endereço aberto é sempre uma página de versão deste repositório.
+    /// </summary>
+    public static class Updates
+    {
+        const string Api = "https://api.github.com/repos/OptimusZuka/OZPanorama/releases?per_page=20";
+        public const string ReleasePrefix = "https://github.com/OptimusZuka/OZPanorama/releases/tag/";
+        static readonly object gate = new object();
+        static Dictionary<string, object> cache; static DateTime cachedAt;
+
+        /// <summary>"v0.1.10-beta" → {0, 1, 10}. Nulo se não for uma versão.</summary>
+        public static int[] Parse(string v)
+        {
+            if (string.IsNullOrEmpty(v)) return null;
+            var m = Regex.Match(v.Trim(), @"^v?(\d{1,4})\.(\d{1,4})\.(\d{1,4})(?:-[0-9A-Za-z.]+)?$");
+            if (!m.Success) return null;
+            return new[] { int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value) };
+        }
+        public static int Compare(int[] a, int[] b) { for (int i = 0; i < 3; i++) if (a[i] != b[i]) return a[i] < b[i] ? -1 : 1; return 0; }
+
+        /// <summary>Escolhe a versão publicada mais alta (sem rascunhos) de uma lista da API.</summary>
+        public static Dictionary<string, object> Pick(object[] list, string current)
+        {
+            var cur = Parse(current); int[] best = null; string tag = null, url = null;
+            foreach (var o in list ?? new object[0])
+            {
+                var r = o as Dictionary<string, object>; if (r == null) continue;
+                if (r.ContainsKey("draft") && r["draft"] is bool && (bool)r["draft"]) continue;
+                var t = r.ContainsKey("tag_name") ? r["tag_name"] as string : null; var v = Parse(t);
+                if (v == null) continue;
+                if (best == null || Compare(v, best) > 0) { best = v; tag = t; url = ReleasePrefix + Uri.EscapeDataString(t); }
+            }
+            var res = new Dictionary<string, object> { { "ok", true }, { "current", current }, { "newer", false } };
+            if (best != null && cur != null && Compare(best, cur) > 0) { res["newer"] = true; res["latest"] = tag.TrimStart('v'); res["url"] = url; }
+            return res;
+        }
+
+        public static Dictionary<string, object> Check(JavaScriptSerializer json)
+        {
+            lock (gate)
+            {
+                if (cache != null && (DateTime.UtcNow - cachedAt).TotalHours < 6) return cache;
+                try
+                {
+                    ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;   // TLS 1.2 no .NET 4
+                    var req = (HttpWebRequest)WebRequest.Create(Api);
+                    req.UserAgent = "OZPanorama/" + AppInfo.Version; req.Accept = "application/vnd.github+json";
+                    req.Timeout = 6000; req.ReadWriteTimeout = 6000; req.AllowAutoRedirect = true;
+                    string text;
+                    using (var resp = (HttpWebResponse)req.GetResponse())
+                    using (var r = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
+                    {
+                        var buf = new char[1024 * 1024 + 1]; int n = 0, k;
+                        while (n < buf.Length && (k = r.Read(buf, n, buf.Length - n)) > 0) n += k;
+                        if (n >= buf.Length) throw new IOException("resposta demasiado grande");
+                        text = new string(buf, 0, n);
+                    }
+                    cache = Pick(json.Deserialize<object[]>(text), AppInfo.Version); cachedAt = DateTime.UtcNow;
+                    return cache;
+                }
+                catch (Exception e)
+                {
+                    AppInfo.Log("atualizações: " + e.Message);
+                    return new Dictionary<string, object> { { "ok", true }, { "current", AppInfo.Version }, { "newer", false }, { "offline", true } };
+                }
+            }
+        }
+        /// <summary>Endereço da versão nova já verificada (nunca um endereço vindo da interface).</summary>
+        public static string KnownUrl { get { lock (gate) { return cache != null && cache.ContainsKey("url") ? cache["url"] as string : null; } } }
+    }
+
     public class Server
     {
         public int Port; public string Token = Guid.NewGuid().ToString("N");
@@ -431,7 +503,7 @@ namespace OZPanorama
             }
             try
             {
-                if (path.StartsWith("/api/surround")) Route(c, method, path, body);
+                if (path.StartsWith("/api/surround") || path == "/api/update") Route(c, method, path, body);   // rede/PowerShell: fora da fila
                 else lock (opsGate) Route(c, method, path, body);
             }
             catch (OzError e) { AppInfo.Log(path + " recusado: " + e.Code + " " + e.Message + " | " + e.Detail); Send(c, 409, ErrorBody(e)); }
@@ -514,6 +586,14 @@ namespace OZPanorama
                 var title = S(b, "title") ?? "Problema no OZPanorama"; var text = S(b, "text") ?? "";
                 if (text.Length > 6000) text = text.Substring(0, 6000) + "\n…(cortado; cole o resto à mão)";
                 var url = IssuesUrl + "?labels=beta&title=" + Uri.EscapeDataString(title) + "&body=" + Uri.EscapeDataString(text);
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                Send(c, 200, new Dictionary<string, object> { { "ok", true } }); return;
+            }
+            if (method == "GET" && path == "/api/update") { Send(c, 200, Updates.Check(json)); return; }
+            if (method == "POST" && path == "/api/open-release")
+            {
+                var url = Updates.KnownUrl;
+                if (url == null || !url.StartsWith(Updates.ReleasePrefix)) { Send(c, 404, new Dictionary<string, object> { { "ok", false }, { "error", "Sem versão nova conhecida." } }); return; }
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                 Send(c, 200, new Dictionary<string, object> { { "ok", true } }); return;
             }

@@ -43,7 +43,9 @@ export function startServer(appDir, { appMode = true } = {}) {
         const b = raw ? JSON.parse(raw) : {};
         requests.push({ path: u.pathname, method: req.method, token: req.headers["x-ozp-token"], type: req.headers["content-type"], body: b });
         const p = u.pathname;
-        if (p === "/api/info") return json({ ok: true, version: "0.1.8-beta", issuesUrl: "https://github.com/OptimusZuka/OZPanorama/issues/new", screens: [{ w: 5838, h: 1080, x: 0, y: 0, primary: true }], games: games() });
+        if (p === "/api/update") return json(state.update || { ok: true, current: "0.1.8-beta", newer: false });
+        if (p === "/api/open-release") { state.openedRelease = (state.openedRelease || 0) + 1; return json({ ok: true }); }
+        if (p === "/api/info") return json({ ok: true, version: "0.1.9-beta", issuesUrl: "https://github.com/OptimusZuka/OZPanorama/issues/new", screens: [{ w: 5838, h: 1080, x: 0, y: 0, primary: true }], games: games() });
         if (p === "/api/preview") {
           const id = "pv" + previews.size;
           previews.set(id, { game: b.game, values: b.values });

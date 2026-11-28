@@ -1419,6 +1419,36 @@ export const ROWS = [
 "Sans Surround · 3 fenêtres"
 ],
   [
+"New version",
+"Versão nova",
+"Nueva versión",
+"Nouvelle version"
+],
+  [
+"See what's new",
+"Ver novidades",
+"Ver novedades",
+"Voir les nouveautés"
+],
+  [
+"Not now",
+"Agora não",
+"Ahora no",
+"Pas maintenant"
+],
+  [
+"Check for updates when opening",
+"Procurar atualizações ao abrir",
+"Buscar actualizaciones al abrir",
+"Rechercher les mises à jour à l'ouverture"
+],
+  [
+"OZPanorama {0} is available (you have {1}).",
+"O OZPanorama {0} já está disponível (você tem a {1}).",
+"OZPanorama {0} ya está disponible (tienes la {1}).",
+"OZPanorama {0} est disponible (vous avez la {1})."
+],
+  [
 "Without Surround · 2 windows",
 "Sem Surround · 2 janelas",
 "Sin Surround · 2 ventanas",

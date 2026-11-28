@@ -110,6 +110,17 @@ namespace OZPanorama.Tests
                 Check(bad, "A/MSFS 2 monitores: lado inválido recusado");
             }
 
+            // ---------- Aviso de versão nova (sem rede: só a escolha da versão) ----------
+            {
+                Check(Updates.Parse("v0.1.10-beta")[2] == 10 && Updates.Parse("0.2.0") != null && Updates.Parse("vx.1") == null && Updates.Parse("v0.1.8-beta;rm") == null, "U/versões lidas e recusadas");
+                Func<string, bool, Dictionary<string, object>> rel = (t, d) => new Dictionary<string, object> { { "tag_name", t }, { "draft", d } };
+                var list = new object[] { rel("v0.1.8-beta", false), rel("v0.1.10-beta", false), rel("v0.2.0-beta", true), rel("v0.1.9-beta", false), rel("lixo", false) };
+                var r1 = Updates.Pick(list, "0.1.8-beta");
+                Check((bool)r1["newer"] && (string)r1["latest"] == "0.1.10-beta" && (string)r1["url"] == Updates.ReleasePrefix + "v0.1.10-beta", "U/a mais alta publicada (10 > 9, rascunho ignorado)");
+                Check(!(bool)Updates.Pick(list, "0.1.10-beta")["newer"] && !(bool)Updates.Pick(list, "0.2.0-beta")["newer"], "U/sem aviso na mesma versão ou numa mais nova");
+                Check(!(bool)Updates.Pick(new object[0], "0.1.8-beta")["newer"] && !(bool)Updates.Pick(null, "0.1.8-beta")["newer"], "U/lista vazia não avisa");
+            }
+
             // ---------- Recusas sem escrita ----------
             {
                 var d = Fresh("recusas");

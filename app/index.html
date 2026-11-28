@@ -38,6 +38,12 @@
   .sidebox { padding: 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 14px; color: var(--soft); }
   .sidebox h4 { margin: 0 0 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
   .side .bottom { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+  .sidebox.upd { border-color: var(--accent); background: var(--warnbg); color: var(--ink); }
+  .sidebox.upd h4 { color: var(--accent); }
+  .sidebox.upd .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .sidebox.upd .btn { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+  label.check.upchk { font-size: 13px; color: var(--muted); }
+  label.check.upchk input { width: 16px; height: 16px; }
   select, input[type=number], input[type=text], textarea { background: var(--bg); color: var(--ink); border: 1px solid var(--line2); border-radius: 10px; font: 500 16px var(--body); }
   select { min-height: 42px; padding: 0 10px; width: 100%; }
   input[type=number], input[type=text] { min-height: 42px; padding: 0 10px; width: 100%; min-width: 0; }
@@ -145,7 +151,12 @@
       <button type="button" data-step="4"><span>4</span><em data-t="Report a problem" style="font-style:normal"></em></button>
     </nav>
     <div class="bottom">
+      <div class="sidebox upd" id="update" hidden role="status">
+        <h4 data-t="New version"></h4><div id="updText"></div>
+        <div class="row"><button type="button" class="btn" id="updOpen" data-t="See what's new"></button><button type="button" class="btn ghost" id="updLater" data-t="Not now"></button></div>
+      </div>
       <label><span data-t="Language"></span><select id="lang"></select></label>
+      <label class="check appOnly upchk"><input type="checkbox" id="updChk"><span data-t="Check for updates when opening"></span></label>
       <div class="sidebox"><h4 data-t="In this Beta"></h4><span data-t="OZPanorama only changes Windows when you press Turn Surround on or off, and it asks you to confirm."></span>
         <div id="screensNow" class="note" style="margin-top:6px"></div></div>
       <button type="button" class="btn ghost appOnly" id="quit" data-t="Close OZPanorama"></button>
@@ -1139,11 +1150,36 @@ lang = pickLang(); T = makeT(lang);
 if (!loadRig()) { for (const [id, v] of Object.entries(EMPTY)) $(id).value = v; }
 // Distância das pontas guardada sem ângulo (ex.: escrita em cm numa versão anterior): calcula agora.
 if ($("tD").value && !($("angL").value && $("angR").value)) spanAngle(true);
+// ---------------- Aviso de versão nova ----------------
+// Só no programa e só se a pessoa não o desligou. O servidor pergunta ao GitHub (sem dados da pessoa) e diz se há uma
+// versão mais nova; nada é descarregado nem instalado. "Agora não" esconde o aviso dessa versão.
+let updInfo = null, updChecked = false;
+const updOn = () => { try { return localStorage.getItem("ozp.updates") !== "off"; } catch { return true; } };
+function renderUpdate() {
+  let skip = null; try { skip = localStorage.getItem("ozp.updates.skip"); } catch {}
+  const show = !!(updInfo && updInfo.newer && updOn() && skip !== updInfo.latest);
+  $("update").hidden = !show;
+  if (show) $("updText").textContent = F("OZPanorama {0} is available (you have {1}).", updInfo.latest, updInfo.current);
+}
+async function checkUpdate() {
+  if (!appInfo || updChecked || !updOn()) return;
+  updChecked = true;
+  try { updInfo = await API("/api/update"); } catch { updInfo = null; }
+  renderUpdate();
+}
+$("updChk").addEventListener("change", (e) => {
+  try { localStorage.setItem("ozp.updates", e.target.checked ? "on" : "off"); } catch {}
+  if (e.target.checked) checkUpdate(); else renderUpdate();
+});
+$("updOpen").addEventListener("click", async () => { try { await API("/api/open-release", {}); } catch {} });
+$("updLater").addEventListener("click", () => { try { localStorage.setItem("ozp.updates.skip", updInfo.latest); } catch {} renderUpdate(); });
+$("updChk").checked = updOn();
+
 refreshInfo().then(() => {
   let hasRig = false; try { hasRig = !!localStorage.getItem("ozp.rig"); } catch {}
   if (!appInfo && !hasRig) applyPreset("zuka");   // sem o programa (página de demonstração): mostra o exemplo
   setLang(lang); $("exampleNote").textContent = T(presetNote); go(1);
-  if (appInfo) refreshSurround();
+  if (appInfo) { refreshSurround(); checkUpdate(); }
 });
 </script>
 </body>

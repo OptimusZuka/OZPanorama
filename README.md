@@ -70,6 +70,7 @@ use **Report a problem** in the app.
 - **Bezels**: calculated from the manufacturers' sheets for known monitors, with the **recommended NVIDIA bezel correction** in pixels (and a warning when the Surround hides a different amount).
 - **Side angle**: enter the distance between the outer ends of the left and right monitors and the angle appears by itself.
 - **Top view to scale**: your monitors and a head with real proportions, so you can see if it looks right.
+- **Update notice**: tells you when a new version is out (from 0.1.9 on; it can be turned off).
 - **NVIDIA Surround on/off with one click**: uses profiles saved by the NVIDIA driver itself, with confirmation.
 
 ## How to use
@@ -87,7 +88,8 @@ use **Report a problem** in the app.
 - Atomic write, read-back and check; if anything fails, the originals are put back automatically.
 - If the file changes between the preview and the write (by the game or another program), nothing is written.
 - **Windows is only changed when you press Turn Surround on/off.** The app asks you to confirm and, with no answer in 20 s, puts back the previous setup. Resolution and the rest stay as they are.
-- Sends nothing over the internet. "Report a problem" only opens GitHub with a text you have read and can edit.
+- The only internet access is the **update check**: when the app opens, it asks GitHub's public API for the latest version number (no data about you or your rig). If there is a newer one, a notice in the side panel opens its Releases page; nothing is downloaded or installed by itself. You can turn it off with "Check for updates when opening".
+- "Report a problem" only opens GitHub with a text you have read and can edit.
 
 ## Windows SmartScreen and antivirus
 

@@ -20,7 +20,7 @@ namespace OZPanorama
 {
     public static class AppInfo
     {
-        public const string Version = "0.1.8-beta";
+        public const string Version = "0.1.9-beta";
         public static string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OZPanorama");
         public static string BackupDir { get { return Path.Combine(DataDir, "backups"); } }
         /// <summary>Ficheiros só do programa (perfil da janela do Edge, script do Surround): fora dos Documentos, que podem estar no OneDrive.</summary>
