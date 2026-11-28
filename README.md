@@ -31,12 +31,17 @@ and **writes the right values into the game's files**, with a backup and a check
 
 <p align="center">
   <img src="docs/images/screenshot-jogo.png" alt="OZPanorama: choosing the simulator, previewing what will change and the Apply button" width="900">
-  <br><sub>Beta 0.1 with the example rig: what will change in the MSFS 2024 file, current and new value, before applying.</sub>
+  <br><sub>Beta 0.1.8 with the example rig: the seven simulators, and what will change in the Le Mans Ultimate file (current and new value) before applying.</sub>
 </p>
 
 <p align="center">
   <img src="docs/images/screenshot-monitores.png" alt="OZPanorama: monitor measurements and top view to scale" width="900">
   <br><sub>Monitor measurements, top view to scale with your head, and the quality of the joins.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/screenshot-dois-monitores.png" alt="OZPanorama: two monitors, main on the right and side window on the left monitor" width="900">
+  <br><sub>Two monitors (ETS2, ATS and MSFS 2024): choose which side the second monitor is on.</sub>
 </p>
 
 > **Beta.** Try it first at a time when you can go back. Every change has a backup and can be restored inside the app.
@@ -47,18 +52,21 @@ and **writes the right values into the game's files**, with a backup and a check
 |---|---|---|
 | Microsoft Flight Simulator 2024 | Tested (three monitors); two monitors experimental | Only the rotation of the extra windows that already exist in `UserCfg.opt` (two, or one with two monitors) |
 | Euro Truck Simulator 2 | Tested (three monitors); two monitors experimental | `multimon_config.sii` and `r_multimon_mode "4"` in `config.cfg` |
-| American Truck Simulator | Tested | Same as ETS2 |
+| American Truck Simulator | Tested (three monitors); two monitors experimental | Same as ETS2 |
 | iRacing | Tested | 7 settings in `rendererDX11Monitor.ini` |
 | RaceRoom Racing Experience | Tested | Triple screen settings in `graphics_options.xml` (distance, screen sizes, bezels, angles) |
 | Assetto Corsa | Tested (with Content Manager) | `triple_screen.ini` (position of each screen) and `MODE=TRIPLE` in `video.ini` |
 | Le Mans Ultimate | Tested | The three views (`SubViews=2`) and `ViewParams` / `LeftView` / `RightView` in `Config_DX11.ini` |
+
+**Two monitors** (main monitor plus one side monitor, left or right) work in ETS2, ATS and MSFS 2024. iRacing, RaceRoom,
+Assetto Corsa and Le Mans Ultimate only have three-screen modes, so they need three monitors.
 
 "Tested" means tested by the author on his own rig (three 27" monitors). Other rigs may behave differently:
 use **Report a problem** in the app.
 
 ## What it does for you
 
-- **Detect monitors**: reads each monitor's name and size, even with NVIDIA Surround on, and places them left / center / right.
+- **Detect monitors**: reads each monitor's name and size, even with NVIDIA Surround on, and places them left / center / right. With two monitors it also picks the two-monitor mode and the side of the second one.
 - **Bezels**: calculated from the manufacturers' sheets for known monitors, with the **recommended NVIDIA bezel correction** in pixels (and a warning when the Surround hides a different amount).
 - **Side angle**: enter the distance between the outer ends of the left and right monitors and the angle appears by itself.
 - **Top view to scale**: your monitors and a head with real proportions, so you can see if it looks right.
