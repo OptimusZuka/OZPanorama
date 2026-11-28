@@ -309,10 +309,10 @@ export const ROWS = [
 "Choisissez le simulateur"
 ],
   [
-"Only simulators tested in this Beta are shown",
-"Só aparecem os simuladores testados nesta Beta",
-"Solo aparecen los simuladores probados en esta Beta",
-"Seuls les simulateurs testés dans cette bêta apparaissent"
+"Tested and experimental simulators in this Beta",
+"Simuladores testados e experimentais nesta Beta",
+"Simuladores probados y experimentales en esta Beta",
+"Simulateurs testés et expérimentaux dans cette bêta"
 ],
   [
 "technical details",
@@ -1735,6 +1735,108 @@ export const ROWS = [
 "O iRacing usa um só ângulo para os dois lados: vai usar a média, {0}°. Ponha o mesmo ângulo nos dois lados para um resultado exato.",
 "iRacing usa un solo ángulo para los dos lados: usará la media, {0}°. Pon el mismo ángulo en los dos lados para un resultado exacto.",
 "iRacing utilise un seul angle pour les deux côtés : il utilisera la moyenne, {0}°. Mettez le même angle des deux côtés pour un résultat exact."
+],
+  [
+"Needs Surround on · Content Manager OK",
+"Precisa do Surround ligado · funciona com o Content Manager",
+"Necesita Surround activado · funciona con Content Manager",
+"Nécessite Surround activé · compatible Content Manager"
+],
+  [
+"Assetto Corsa only splits the image into three equal parts: the three monitors must have the same resolution.",
+"O Assetto Corsa só divide a imagem em três partes iguais: os três monitores têm de ter a mesma resolução.",
+"Assetto Corsa solo divide la imagen en tres partes iguales: los tres monitores deben tener la misma resolución.",
+"Assetto Corsa ne divise l'image qu'en trois parties égales : les trois écrans doivent avoir la même résolution."
+],
+  [
+"Files in Documents\\Assetto Corsa\\cfg\\ (the same ones Content Manager uses). The game resolution should be {0}×{1}, the Surround area: choose it in Content Manager or in the launcher if it is different (this Beta does not change it).",
+"Ficheiros em Documentos\\Assetto Corsa\\cfg\\ (os mesmos que o Content Manager usa). A resolução do jogo deve ser {0}×{1}, a área do Surround: escolha-a no Content Manager ou no launcher se for diferente (esta Beta não a altera).",
+"Archivos en Documentos\\Assetto Corsa\\cfg\\ (los mismos que usa Content Manager). La resolución del juego debe ser {0}×{1}, el área de Surround: elígela en Content Manager o en el launcher si es diferente (esta Beta no la cambia).",
+"Fichiers dans Documents\\Assetto Corsa\\cfg\\ (les mêmes que Content Manager). La résolution du jeu doit être {0}×{1}, la zone Surround : choisissez-la dans Content Manager ou le launcher si elle est différente (cette Bêta ne la modifie pas)."
+],
+  [
+"Do not save the triple screen page of the original launcher afterwards: it recalculates the positions from its own values and overwrites these.",
+"Não grave depois a página de triplos do launcher original: ela recalcula as posições a partir dos próprios valores e substitui estas.",
+"No guardes después la página de triple pantalla del launcher original: recalcula las posiciones con sus propios valores y sobrescribe estas.",
+"N'enregistrez pas ensuite la page triple écran du launcher d'origine : elle recalcule les positions avec ses propres valeurs et remplace celles-ci."
+],
+  [
+"Turns on triple screen mode (MODE=TRIPLE in video.ini), the same setting Content Manager uses.",
+"Liga o modo de triplos (MODE=TRIPLE no video.ini), a mesma definição que o Content Manager usa.",
+"Activa el modo triple pantalla (MODE=TRIPLE en video.ini), el mismo ajuste que usa Content Manager.",
+"Active le mode triple écran (MODE=TRIPLE dans video.ini), le même réglage que Content Manager."
+],
+  [
+"Writes triple_screen.ini with the position of each screen seen from above, in metres, including the pixels hidden by the bezel correction.",
+"Escreve o triple_screen.ini com a posição de cada tela vista de cima, em metros, incluindo os píxeis escondidos pela correção de moldura.",
+"Escribe triple_screen.ini con la posición de cada pantalla vista desde arriba, en metros, incluyendo los píxeles ocultos por la corrección de marcos.",
+"Écrit triple_screen.ini avec la position de chaque écran vue de dessus, en mètres, y compris les pixels masqués par la correction des bordures."
+],
+  [
+"Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Experimental: not yet validated on a rig.",
+"Precisa do NVIDIA Surround (ou AMD Eyefinity) e de três telas com a mesma resolução. Experimental: ainda não validado num rig.",
+"Necesita NVIDIA Surround (o AMD Eyefinity) y tres pantallas con la misma resolución. Experimental: aún no validado en un rig.",
+"Nécessite NVIDIA Surround (ou AMD Eyefinity) et trois écrans de même résolution. Expérimental : pas encore validé sur un rig."
+],
+  [
+"Needs Surround on · Multiview",
+"Precisa do Surround ligado · Multiview",
+"Necesita Surround activado · Multiview",
+"Nécessite Surround activé · Multiview"
+],
+  [
+"Le Mans Ultimate only splits the image into three equal parts: the three monitors must have the same resolution.",
+"O Le Mans Ultimate só divide a imagem em três partes iguais: os três monitores têm de ter a mesma resolução.",
+"Le Mans Ultimate solo divide la imagen en tres partes iguales: los tres monitores deben tener la misma resolución.",
+"Le Mans Ultimate ne divise l'image qu'en trois parties égales : les trois écrans doivent avoir la même résolution."
+],
+  [
+"File in the game's UserData folder (Steam). Values in metres: width, height, eye distance, side angle (°), gap. Largest direction error of the visible pixels: {0}°.",
+"Arquivo na pasta UserData do jogo (Steam). Valores em metros: largura, altura, distância dos olhos, ângulo lateral (°), folga. Maior erro de direção dos píxeis visíveis: {0}°.",
+"Archivo en la carpeta UserData del juego (Steam). Valores en metros: ancho, alto, distancia de los ojos, ángulo lateral (°), separación. Mayor error de dirección de los píxeles visibles: {0}°.",
+"Fichier dans le dossier UserData du jeu (Steam). Valeurs en mètres : largeur, hauteur, distance des yeux, angle latéral (°), écart. Plus grande erreur de direction des pixels visibles : {0}°."
+],
+  [
+"The width and gap are not the physical ones: with the Surround each third of the image includes pixels hidden behind the bezels, so they are fitted so that every visible pixel points in the real direction.",
+"A largura e a folga não são as físicas: com o Surround cada terço da imagem inclui píxeis escondidos atrás das molduras, por isso são ajustadas para cada píxel visível apontar na direção real.",
+"El ancho y la separación no son los físicos: con Surround cada tercio de la imagen incluye píxeles ocultos tras los marcos, así que se ajustan para que cada píxel visible apunte en la dirección real.",
+"La largeur et l'écart ne sont pas les valeurs physiques : avec Surround chaque tiers de l'image inclut des pixels cachés derrière les bordures, ils sont donc ajustés pour que chaque pixel visible pointe dans la direction réelle."
+],
+  [
+"Turns on the three views (SubViews=2, the Multiview option) with separate left and right views.",
+"Liga as três vistas (SubViews=2, a opção Multiview) com vistas esquerda e direita próprias.",
+"Activa las tres vistas (SubViews=2, la opción Multiview) con vistas izquierda y derecha propias.",
+"Active les trois vues (SubViews=2, l'option Multiview) avec des vues gauche et droite distinctes."
+],
+  [
+"Writes the size, eye distance and angle of the three views, fitted to your rig.",
+"Escreve o tamanho, a distância dos olhos e o ângulo das três vistas, ajustados ao seu rig.",
+"Escribe el tamaño, la distancia de los ojos y el ángulo de las tres vistas, ajustados a tu rig.",
+"Écrit la taille, la distance des yeux et l'angle des trois vues, ajustés à votre rig."
+],
+  [
+"Recommended NVIDIA bezel correction: {0} px per join (exactly {1} px: bezels {2} + {3} = {4} mm with the cases touching). The angle and the eye distance do not change this value.",
+"Correção de molduras recomendada na NVIDIA: {0} px por junção (exatamente {1} px: molduras {2} + {3} = {4} mm com as caixas encostadas). O ângulo e a distância dos olhos não mudam este valor.",
+"Corrección de marcos recomendada en NVIDIA: {0} px por unión (exactamente {1} px: marcos {2} + {3} = {4} mm con las carcasas juntas). El ángulo y la distancia de los ojos no cambian este valor.",
+"Correction des bordures recommandée NVIDIA : {0} px par jonction (exactement {1} px : bordures {2} + {3} = {4} mm, boîtiers collés). L'angle et la distance des yeux ne changent pas cette valeur."
+],
+  [
+"Your Surround hides {0} px per join. Change it to {1} px in the NVIDIA Control Panel (Configure Surround → Bezel correction) and detect the monitors again.",
+"O seu Surround esconde {0} px por junção. Mude para {1} px no Painel de Controlo da NVIDIA (Configurar Surround → Correção de molduras) e detete os monitores de novo.",
+"Tu Surround oculta {0} px por unión. Cámbialo a {1} px en el Panel de control de NVIDIA (Configurar Surround → Corrección de marcos) y vuelve a detectar los monitores.",
+"Votre Surround masque {0} px par jonction. Passez à {1} px dans le Panneau de configuration NVIDIA (Configurer Surround → Correction des bordures) et détectez à nouveau les écrans."
+],
+  [
+"To calculate the NVIDIA bezel correction, use Detect monitors: it brings the case width of each monitor from the manufacturers' sheets.",
+"Para calcular a correção de molduras da NVIDIA, use Detetar monitores: traz a largura da caixa de cada monitor das fichas dos fabricantes.",
+"Para calcular la corrección de marcos de NVIDIA, usa Detectar monitores: trae el ancho de la carcasa de cada monitor de las fichas de los fabricantes.",
+"Pour calculer la correction des bordures NVIDIA, utilisez Détecter les écrans : il récupère la largeur du boîtier de chaque écran depuis les fiches des fabricants."
+],
+  [
+"Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Tested on the author's rig with Content Manager.",
+"Precisa do NVIDIA Surround (ou AMD Eyefinity) e de três telas com a mesma resolução. Testado no rig do autor com o Content Manager.",
+"Necesita NVIDIA Surround (o AMD Eyefinity) y tres pantallas con la misma resolución. Probado en el rig del autor con Content Manager.",
+"Nécessite NVIDIA Surround (ou AMD Eyefinity) et trois écrans de même résolution. Testé sur le rig de l'auteur avec Content Manager."
 ]
 ];
 export function makeT(code) {

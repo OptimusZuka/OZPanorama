@@ -201,6 +201,7 @@
           <label><span data-t="Right side angle (°)"></span><input id="angR" type="number" step="0.5" min="0" max="90"></label>
           <label class="full"><span data-t="Gap between visible areas, both bezels (mm)"></span><input id="gap" type="number" step="0.5" min="0" max="200"></label>
           <p class="note full" id="gapNote"></p>
+          <div class="full" id="bezelAdvice"></div>
         </fieldset>
         <fieldset style="margin-bottom:0">
           <legend data-t="Eyes"></legend>
@@ -228,7 +229,7 @@
   <main id="step2" hidden>
     <div class="head">
       <div><small data-t="Step 2 of 2 · Game and apply"></small><h1 data-t="Choose the simulator"></h1></div>
-      <span class="note" data-t="Only simulators tested in this Beta are shown"></span>
+      <span class="note" data-t="Tested and experimental simulators in this Beta"></span>
     </div>
     <div class="grid2">
       <section class="stack">
@@ -353,6 +354,8 @@ const GAMES = [
   { k: "ats", name: "American Truck Simulator", sub: "Needs Surround on" },
   { k: "iracing", name: "iRacing", sub: "3 screens · 7 settings" },
   { k: "raceroom", name: "RaceRoom Racing Experience", sub: "Needs Surround on · multiview" },
+  { k: "ac", name: "Assetto Corsa", sub: "Needs Surround on · Content Manager OK" },
+  { k: "lmu", name: "Le Mans Ultimate", sub: "Needs Surround on · Multiview" },
   { k: "msfs", name: "Microsoft Flight Simulator 2024", sub: "Without Surround · 3 windows" },
 ];
 let game = "msfs";
@@ -544,7 +547,7 @@ function previewTop(i) {
     $("topview").innerHTML = topView(rig) + (noDist ? `<p class="note">${esc(T("Head drawn at 650 mm for now: enter the distance from your eyes to the center screen."))}</p>` : "");
   } catch (e) { /* sem dados suficientes para desenhar */ }
 }
-function render() { try { renderInner(); } catch (e) { invalidate(); $("alerts").innerHTML += `<div class="alert err">${esc(T("Internal calculation error"))}: ${esc(e.message)}</div>`; } }
+function render() { try { renderInner(); } catch (e) { invalidate(); $("alerts").innerHTML += `<div class="alert err">${esc(T("Internal calculation error"))}: ${esc(e.message)}</div>`; } try { bezelAdvice(); } catch { $("bezelAdvice").innerHTML = ""; } }
 function renderInner() {
   const i = readInputs(), v = validate(i);
   const al = [...v.errs.map((e) => `<div class="alert err">${esc(e)}</div>`), ...v.warns.map((w) => `<div class="alert">${esc(w)}</div>`), ...v.notes.map((n) => `<div class="alert info">${esc(n)}</div>`)].join("");
@@ -586,6 +589,28 @@ function renderInner() {
     note = F("File in Documents\\My Games\\SimBin\\RaceRoom Racing Experience\\UserData\\. Distance and screen sizes in centimetres. The game resolution should be the Surround area ({0}×{1}).", i.left.res_px[0] + i.center.res_px[0] + i.right.res_px[0] + (i.left.desktop_gap_px || 0) + (i.right.desktop_gap_px || 0), i.center.res_px[1]);
     steps = [T("Turns on triple screen (multiview) and the advanced field of view: each screen gets its own image."), T("Writes the distance to the screen, the size of each screen and the side angles, in the game's own units (cm and degrees)."), surroundBezel ? T("Bezels at 0: Surround already hides them (bezel correction), so they are not corrected twice.") : T("Writes the bezels from the gap between screens (not yet tested without Surround bezel correction).")];
     limit = T("Needs NVIDIA Surround (or AMD Eyefinity) turned on and the game set to the full Surround resolution.");
+  } else if (game === "lmu") {
+    // Le Mans Ultimate: SubViews=2 + ViewParams/LeftView/RightView no Config_DX11.ini, ajustados ao modelo do jogo.
+    const p = E.lmuPlan(rig), w = Math.round(p.width), h = Math.round(p.height);
+    if (p.problems.length) { invalidate(); $("alerts2").innerHTML = `<div class="alert err">${esc(T("Le Mans Ultimate only splits the image into three equal parts: the three monitors must have the same resolution."))}</div>`; return; }
+    title = "Config_DX11.ini";
+    text = `SubViews=2\nUseSubViewParams=2\nViewParams=(${p.view})\nLeftView=(${p.left})\nRightView=(${p.right})`;
+    note = F("File in the game's UserData folder (Steam). Values in metres: width, height, eye distance, side angle (°), gap. Largest direction error of the visible pixels: {0}°.", p.errDeg.toFixed(2));
+    values = { ViewParams: p.view, LeftView: p.left, RightView: p.right, width: w, height: h };
+    extra = `<div class="alert info">${esc(T("The width and gap are not the physical ones: with the Surround each third of the image includes pixels hidden behind the bezels, so they are fitted so that every visible pixel points in the real direction."))}</div>`;
+    steps = [T("Turns on the three views (SubViews=2, the Multiview option) with separate left and right views."), T("Writes the size, eye distance and angle of the three views, fitted to your rig."), F("Checks that the game resolution matches the Surround area ({0}×{1}) and warns you if it doesn't.", w, h)];
+    limit = T("Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Experimental: not yet validated on a rig.");
+  } else if (game === "ac") {
+    // Assetto Corsa: triple_screen.ini (pontos de cada terço da imagem) + MODE=TRIPLE no video.ini.
+    const p = E.acPlan(rig), w = Math.round(p.width), h = Math.round(p.height);
+    if (p.problems.length) { invalidate(); $("alerts2").innerHTML = `<div class="alert err">${esc(T("Assetto Corsa only splits the image into three equal parts: the three monitors must have the same resolution."))}</div>`; return; }
+    title = "triple_screen.ini + video.ini";
+    text = p.text;
+    note = F("Files in Documents\\Assetto Corsa\\cfg\\ (the same ones Content Manager uses). The game resolution should be {0}×{1}, the Surround area: choose it in Content Manager or in the launcher if it is different (this Beta does not change it).", w, h);
+    values = { triple: text, width: w, height: h };
+    extra = `<div class="alert info">${esc(T("Do not save the triple screen page of the original launcher afterwards: it recalculates the positions from its own values and overwrites these."))}</div>`;
+    steps = [T("Turns on triple screen mode (MODE=TRIPLE in video.ini), the same setting Content Manager uses."), T("Writes triple_screen.ini with the position of each screen seen from above, in metres, including the pixels hidden by the bezel correction."), F("Checks that the game resolution matches the Surround area ({0}×{1}) and warns you if it doesn't.", w, h)];
+    limit = T("Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Tested on the author's rig with Content Manager.");
   } else {
     const hs = String(msfsOpt.hfov).trim(), userH = hs === "" ? null : Number(hs.replace(",", "."));
     const optHtml = (hide) => `<div class="panel stack">
@@ -686,6 +711,25 @@ function spanAngle(write) {
   $("tDOut").textContent = F("Angle of each side: {0}° (±{1}° per mm of error). Cases: center {2} mm, sides {3} mm.", f1(v), u.toFixed(2).replace(".", lang === "en" ? "." : ","), f1(a), f1(b)) + (cm ? " " + F("Read as {0} cm = {1} mm.", f1(d / 10), f1(d)) : "") + (est ? " " + T("Case widths estimated from the visible area plus the gap. Detect monitors gives the exact ones.") : "");
   if (write) { $("angL").value = $("angR").value = v.toFixed(1); }
   return v;
+}
+// Correção de molduras recomendada para o NVIDIA Surround (ou AMD Eyefinity): os píxeis a esconder em cada junção são a
+// distância física entre as áreas visíveis (moldura do central + moldura do lateral, com as caixas encostadas) a dividir
+// pelo tamanho do píxel. O ângulo e a distância dos olhos não entram: as molduras ficam na dobradiça.
+function bezelAdvice() {
+  const box = $("bezelAdvice"), num = (id) => parseFloat(String($(id).value).replace(",", "."));
+  const a = num("tA"), b = num("tB"), wc = num("wC"), xc = num("xC"), wl = num("wL"), wr = num("wR"), xl = num("xL"), xr = num("xR");
+  const ws = wl > 0 && wr > 0 ? (wl + wr) / 2 : wl || wr, xs = xl > 0 && xr > 0 ? (xl + xr) / 2 : xl || xr;
+  if (!(a > 0 && b > 0 && wc > 0 && ws > 0 && xc > 0 && xs > 0)) { box.innerHTML = `<p class="note">${esc(T("To calculate the NVIDIA bezel correction, use Detect monitors: it brings the case width of each monitor from the manufacturers' sheets."))}</p>`; return null; }
+  const rc = $("curvC").checked ? num("rC") : 0, chord = rc > 0 ? E.chordFromArc(wc, rc)[0] : wc;
+  const bc = (a - chord) / 2, bs = (b - ws) / 2, gap = bc + bs;
+  if (!(bc >= 0 && bs >= 0 && gap < 200)) { box.innerHTML = ""; return null; }
+  // Cada moldura esconde píxeis do seu próprio monitor (o central curvo conta pela corda).
+  const pc = chord / xc, ps = ws / xs, exact = bc / pc + bs / ps, px = Math.round(exact), pitch = gap / exact;
+  const now = surroundGapPx != null ? surroundGapPx : $("pxGap").checked && num("gap") >= 0 ? Math.round((num("gap") * xc) / chord) : null;
+  let h = `<div class="alert info">${esc(F("Recommended NVIDIA bezel correction: {0} px per join (exactly {1} px: bezels {2} + {3} = {4} mm with the cases touching). The angle and the eye distance do not change this value.", px, f1(exact), f1(bc), f1(bs), f1(gap)))}</div>`;
+  if (now != null && Math.abs(now - exact) >= 1.5) h += `<div class="alert warn">${esc(F("Your Surround hides {0} px per join. Change it to {1} px in the NVIDIA Control Panel (Configure Surround → Bezel correction) and detect the monitors again.", now, px))}</div>`;
+  box.innerHTML = h;
+  return { px, gap, now };
 }
 $("tD").addEventListener("input", (e) => { e.stopPropagation(); if (spanAngle(true) != null) $("form").dispatchEvent(new Event("input")); else saveRig(); });
 $("copy").addEventListener("click", async () => {

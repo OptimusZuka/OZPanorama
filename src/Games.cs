@@ -31,7 +31,7 @@ namespace OZPanorama
     {
         public string Id, Name, Status;   // Status: "testado" | "experimental" | "nao-validado"
         public string[] Processes = new string[0];
-        public bool CanApply { get { return Status == "testado"; } }
+        public bool CanApply { get { return Status == "testado" || Status == "experimental"; } }
         public abstract string[] Paths();
         /// <summary>Todos os ficheiros que este jogo pode ter escrito (o restauro só aceita estes caminhos).</summary>
         public virtual string[] AllPaths() { return Paths(); }
@@ -313,6 +313,202 @@ namespace OZPanorama
         }
     }
 
+    // ---------------- Assetto Corsa ----------------
+    // Testado pelo autor no rig a 23/11/2026 com o Content Manager. Ficheiros em Documentos\Assetto Corsa\cfg (os mesmos que o Content Manager usa).
+    //  - video.ini: só [CAMERA] MODE=TRIPLE (o Content Manager lê e escreve este mesmo campo).
+    //  - triple_screen.ini: gerado por inteiro (só tem a geometria dos triplos); cada linha é validada antes de chegar ao disco.
+    // A resolução do jogo ([VIDEO] WIDTH/HEIGHT) não é escrita na Beta: só se avisa quando não bate com o Surround.
+    public class AssettoCorsa : Game
+    {
+        public string Root = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        public Func<List<int[]>> ScreensProvider = Displays.Screens;
+        public AssettoCorsa() { Id = "ac"; Name = "Assetto Corsa"; Status = "testado"; Processes = new[] { "acs", "acs_x86", "AssettoCorsa" }; }
+        string Dir { get { return System.IO.Path.Combine(Root, "Assetto Corsa", "cfg"); } }
+        public override string[] Paths() { return new[] { System.IO.Path.Combine(Dir, "video.ini"), System.IO.Path.Combine(Dir, "triple_screen.ini") }; }
+
+        static readonly Regex PointNum = new Regex(@"^-?\d{1,2}\.\d{1,6}$");
+        static readonly string[] Sections = { "LEFT_SCREEN", "CENTER_SCREEN", "RIGHT_SCREEN" };
+
+        /// <summary>Só aceita exatamente o ficheiro que o motor gera (engine.js acPlan), com números plausíveis (metros).</summary>
+        public static bool TripleValid(string text)
+        {
+            var l = text.Split('\n');
+            if (l.Length != 20 || l[0] != "[TRIPLE_SCREEN]" || l[1] != "ACTIVE=1" || l[2] != "") return false;
+            for (int k = 0; k < 3; k++)
+            {
+                int b = 3 + k * 4;
+                if (l[b] != "[" + Sections[k] + "]" || l[b + 3] != "") return false;
+                for (int j = 0; j < 2; j++)
+                {
+                    var m = Regex.Match(l[b + 1 + j], "^" + (j == 0 ? "LEFT" : "RIGHT") + @"_POINT=([^,]+),([^,]+)$");
+                    if (!m.Success || !PointNum.IsMatch(m.Groups[1].Value) || !PointNum.IsMatch(m.Groups[2].Value)) return false;
+                    double x = double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture), y = double.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+                    if (Math.Abs(x) > 5 || Math.Abs(y) > 5 || (k == 1 && y < 0.1)) return false;
+                }
+            }
+            if (l[15] != "[SPINNERS]") return false;
+            var keys = new[] { "SP_MARGINS", "SP_ROTATION", "SP_DISTANCE", "SP_WIDTH" };
+            for (int k = 0; k < 4; k++)
+            {
+                if (!Regex.IsMatch(l[16 + k], "^" + keys[k] + @"=-?\d{1,4}$")) return false;
+            }
+            return true;
+        }
+
+        static string Ini(string text, string section, string key)
+        {
+            string cur = null;
+            foreach (var raw in text.Split('\n'))
+            {
+                var line = raw.TrimEnd('\r'); var h = Regex.Match(line, @"^\s*\[([^\]]+)\]\s*$");
+                if (h.Success) { cur = h.Groups[1].Value.Trim(); continue; }
+                var m = Regex.Match(line, @"^\s*" + Regex.Escape(key) + @"\s*=\s*(.*?)\s*$");
+                if (m.Success && string.Equals(cur, section, StringComparison.OrdinalIgnoreCase)) return m.Groups[1].Value;
+            }
+            return null;
+        }
+
+        public override Plan BuildPlan(Dictionary<string, object> v, Dictionary<string, Snapshot> snaps)
+        {
+            var paths = Paths(); var video = snaps[paths[0]];
+            if (!Directory.Exists(Dir)) throw new OzError("missing", "Não encontrei a pasta Documentos\\Assetto Corsa\\cfg. Abra o Assetto Corsa uma vez antes.", Dir);
+            if (!video.Exists) throw new OzError("missing", "Não encontrei o video.ini do Assetto Corsa. Abra o jogo uma vez e saia antes.", paths[0]);
+            var tri = Str(v, "triple").Replace("\r\n", "\n").TrimEnd('\n');
+            if (tri.Length > 4000 || !TripleValid(tri)) throw new OzError("input", "O conteúdo calculado do triple_screen.ini não é válido. Volte a calcular.");
+            var vt = TextFile.Decode(video.Bytes).Text;
+            var p = new Plan { Game = Id, GameName = Name };
+            p.Files.Add(new FilePlan { Path = paths[1], Label = "triple_screen.ini", WholeText = tri.Replace("\n", "\r\n") + "\r\n", MustExist = false });
+            var fv = new FilePlan { Path = paths[0], Label = "video.ini" };
+            fv.Rules.Add(new LineRule
+            {
+                Key = "[CAMERA] MODE", Section = "CAMERA",
+                Match = new Regex(@"^(\s*MODE\s*=\s*)(\S*)(.*)$"),
+                Rewrite = m => m.Groups[1].Value + "TRIPLE" + m.Groups[3].Value,
+                Current = m => m.Groups[2].Value, NewValue = "TRIPLE"
+            });
+            p.Files.Add(fv);
+
+            string w = Ini(vt, "VIDEO", "WIDTH"), h = Ini(vt, "VIDEO", "HEIGHT"), fs = Ini(vt, "VIDEO", "FULLSCREEN");
+            p.Info.Add(new Dictionary<string, object> { { "WIDTH", w }, { "HEIGHT", h }, { "FULLSCREEN", fs } });
+            object ow, oh; int tw, th;
+            if (v.TryGetValue("width", out ow) && v.TryGetValue("height", out oh) && int.TryParse(Convert.ToString(ow, CultureInfo.InvariantCulture), out tw) && int.TryParse(Convert.ToString(oh, CultureInfo.InvariantCulture), out th))
+            {
+                var screens = ScreensProvider();
+                if (screens.Count > 0 && !screens.Any(x => x[0] == tw && x[1] == th))
+                    p.Warnings.Add("O Windows não tem nenhum ecrã com " + tw + "×" + th + ". Confirme que o Surround está ligado com a correção das molduras.");
+                if (w != null && h != null && (w != tw.ToString() || h != th.ToString()))
+                    p.Warnings.Add("O Assetto Corsa está configurado para " + w + "×" + h + " e a área do Surround é " + tw + "×" + th + ". Na Beta o OZPanorama não altera a resolução: escolha " + tw + "×" + th + " no Content Manager (Definições → Assetto Corsa → Vídeo) ou no launcher do jogo.");
+            }
+            p.Warnings.Add("Content Manager: se mudar as definições de vídeo depois de aplicar, deixe o modo de ecrã (Camera) em Triple.");
+            return p;
+        }
+    }
+
+    // ---------------- Le Mans Ultimate ----------------
+    // Experimental. Config_DX11.ini fica na pasta UserData da instalação do Steam (não em Documentos).
+    //  [COMPONENTS] SubViews=2 (três vistas = "Multiview"), UseSubViewParams=2 (vistas esquerda/direita próprias),
+    //  ViewParams/LeftView/RightView=(largura m, altura m, distância dos olhos m, ângulo °, folga m). O comentário
+    //  no fim da linha ViewParams é preservado. Os valores vêm do motor (engine.js lmuPlan) e são validados aqui.
+    public class LeMansUltimate : Game
+    {
+        public Func<string> InstallProvider = FindInstall;
+        public Func<List<int[]>> ScreensProvider = Displays.Screens;
+        public LeMansUltimate() { Id = "lmu"; Name = "Le Mans Ultimate"; Status = "experimental"; Processes = new[] { "Le Mans Ultimate", "LMU" }; }
+
+        /// <summary>Pastas de bibliotecas do Steam: SteamPath do registo + libraryfolders.vdf. Só leitura.</summary>
+        public static List<string> SteamLibraries()
+        {
+            var res = new List<string>();
+            try
+            {
+                using (var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam"))
+                {
+                    var sp = k == null ? null : k.GetValue("SteamPath") as string;
+                    if (!string.IsNullOrEmpty(sp))
+                    {
+                        sp = sp.Replace('/', '\\'); res.Add(sp);
+                        var vdf = System.IO.Path.Combine(sp, "steamapps", "libraryfolders.vdf");
+                        if (File.Exists(vdf))
+                            foreach (Match m in Regex.Matches(File.ReadAllText(vdf), "\"path\"\\s+\"([^\"]+)\""))
+                                res.Add(m.Groups[1].Value.Replace("\\\\", "\\"));
+                    }
+                }
+            }
+            catch { }
+            res.Add(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"));
+            return res.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+        public static string FindInstall()
+        {
+            foreach (var lib in SteamLibraries())
+            {
+                var d = System.IO.Path.Combine(lib, "steamapps", "common", "Le Mans Ultimate");
+                if (Directory.Exists(d)) return d;
+            }
+            return null;
+        }
+        public override string[] Paths()
+        {
+            var d = InstallProvider();
+            return d == null ? new string[0] : new[] { System.IO.Path.Combine(d, "UserData", "Config_DX11.ini") };
+        }
+
+        static readonly string[] Keys = { "ViewParams", "LeftView", "RightView" };
+        /// <summary>Exige exatamente "w, h, eye, ang, gap" com 3 casas decimais e valores plausíveis.</summary>
+        public static string Tuple(Dictionary<string, object> v, string key)
+        {
+            var t = Str(v, key).Trim();
+            var m = Regex.Match(t, @"^(-?\d\.\d{3}), (\d\.\d{3}), (\d\.\d{3}), (\d{1,2}\.\d{3}), (-?\d\.\d{3})$");
+            if (!m.Success) throw new OzError("input", "Os valores calculados não são válidos. Volte a calcular.", key);
+            Func<int, double> g = i => double.Parse(m.Groups[i].Value, CultureInfo.InvariantCulture);
+            if (g(1) < 0.1 || g(1) > 3 || g(2) < 0.05 || g(2) > 2 || g(3) < 0.1 || g(3) > 3 || g(4) > 90 || g(5) < -0.1 || g(5) > 0.2)
+                throw new OzError("input", "Valor calculado fora do intervalo permitido (" + key + "). Volte a calcular.");
+            return t;
+        }
+
+        public override Plan BuildPlan(Dictionary<string, object> v, Dictionary<string, Snapshot> snaps)
+        {
+            var paths = Paths();
+            if (paths.Length == 0) throw new OzError("missing", "Não encontrei a instalação do Le Mans Ultimate no Steam.");
+            var snap = snaps[paths[0]];
+            if (!snap.Exists) throw new OzError("missing", "Não encontrei o Config_DX11.ini do Le Mans Ultimate. Abra o jogo uma vez e saia pelo menu antes.", paths[0]);
+            var vals = new Dictionary<string, string>();
+            foreach (var k in Keys) vals[k] = Tuple(v, k);
+            var p = new Plan { Game = Id, GameName = Name };
+            var f = new FilePlan { Path = paths[0], Label = "Config_DX11.ini" };
+            foreach (var kv in new[] { new[] { "SubViews", "2" }, new[] { "UseSubViewParams", "2" } })
+            {
+                var key = kv[0]; var nv = kv[1];
+                f.Rules.Add(new LineRule { Key = key, Section = "COMPONENTS", Match = new Regex(@"^(" + key + @"=)(\S*)(.*)$"), Rewrite = m => m.Groups[1].Value + nv + m.Groups[3].Value, Current = m => m.Groups[2].Value, NewValue = nv });
+            }
+            foreach (var k in Keys)
+            {
+                var nv = vals[k];
+                f.Rules.Add(new LineRule { Key = k, Section = "COMPONENTS", Match = new Regex(@"^(" + k + @"=\()([^)]*)(\).*)$"), Rewrite = m => m.Groups[1].Value + nv + m.Groups[3].Value, Current = m => m.Groups[2].Value, NewValue = nv });
+            }
+            p.Files.Add(f);
+
+            var text = TextFile.Decode(snap.Bytes).Text;
+            Func<string, string> ini = key => { var m = Regex.Match(text, @"(?m)^" + key + @"=(.*?)\s*$"); return m.Success ? m.Groups[1].Value : null; };
+            string rw = ini("VideoResW"), rh = ini("VideoResH"), wm = ini("WindowedMode"), cr = ini("CustomVidRes");
+            p.Info.Add(new Dictionary<string, object> { { "VideoResW", rw }, { "VideoResH", rh }, { "WindowedMode", wm }, { "CustomVidRes", cr } });
+            object ow, oh; int tw, th;
+            if (v.TryGetValue("width", out ow) && v.TryGetValue("height", out oh) && int.TryParse(Convert.ToString(ow, CultureInfo.InvariantCulture), out tw) && int.TryParse(Convert.ToString(oh, CultureInfo.InvariantCulture), out th))
+            {
+                var screens = ScreensProvider();
+                if (screens.Count > 0 && !screens.Any(x => x[0] == tw && x[1] == th))
+                    p.Warnings.Add("O Windows não tem nenhum ecrã com " + tw + "×" + th + ". Confirme que o Surround está ligado com a correção das molduras.");
+                bool windowed = wm == "1";
+                if (!windowed && rw != null && rh != null && (rw != tw.ToString() || rh != th.ToString()))
+                    p.Warnings.Add("O Le Mans Ultimate está configurado para " + rw + "×" + rh + " e a área do Surround é " + tw + "×" + th + ". Na Beta o OZPanorama não altera a resolução: escolha " + tw + "×" + th + " nas definições gráficas do jogo.");
+                if (windowed && cr != null && cr.Replace(" ", "") != "(" + tw + "," + th + ")")
+                    p.Warnings.Add("O jogo está em janela com CustomVidRes=" + cr + ". A área do Surround é " + tw + "×" + th + ".");
+            }
+            p.Warnings.Add("No jogo, a opção Multiview (definições gráficas) corresponde a SubViews=2. Não use o modo sem borda (Borderless), que estica a imagem.");
+            return p;
+        }
+    }
+
     /// <summary>Integrações sem aplicação automática na Beta: só pré-visualização/cópia na interface.</summary>
     public class PreviewOnlyGame : Game
     {
@@ -330,7 +526,9 @@ namespace OZPanorama
             new ScsGame("ats", "American Truck Simulator", "American Truck Simulator", "amtrucks", "testado"),   // testado pelo autor no rig (confirmado a 15/11), mesmo comportamento do ETS2
             new IRacing(),
             new RaceRoom(),
-            // AC e ACC ficam fora da Beta 0.1 (pedido do autor: só o que foi testado).
+            new AssettoCorsa(),   // testado no rig a 23/11 com o Content Manager (SP_MARGINS=0 com o Surround)
+            new LeMansUltimate(), // experimental
+            // ACC fica fora da Beta (pedido do autor: só o que foi testado).
         };
         public static Game Get(string id)
         {

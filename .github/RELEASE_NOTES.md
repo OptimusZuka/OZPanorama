@@ -1,11 +1,14 @@
-**OZPanorama {VERSION}** - side angle and top view fixes.
+**OZPanorama {VERSION}** - Assetto Corsa, Le Mans Ultimate (experimental) and the recommended NVIDIA bezel correction.
 
-### Fixed
-- The distance between the outer ends of the left and right monitors can now be typed in centimetres too (131 is read as 131 cm = 1310 mm). Before, a value in cm only showed "This distance does not fit these monitors".
-- A distance saved without an angle is calculated again when the app opens.
-- The top view now appears as soon as the side angle is known, with the head drawn at 650 mm until you enter your eye distance. Without the angle, it says what is missing.
+### New
+- **Assetto Corsa** (tested with Content Manager): writes `triple_screen.ini` with the position of each screen and turns on `MODE=TRIPLE` in `video.ini`, the same setting Content Manager uses. With Surround bezel correction, each third of the image includes the hidden pixels, so the image stays aligned across the bezels.
+- **Le Mans Ultimate** (experimental): turns on the three views (Multiview) and writes `ViewParams`, `LeftView` and `RightView` in `Config_DX11.ini`, fitted to the game's own screen model so that every visible pixel points in the real direction. Finds the game in your Steam libraries.
+- **Recommended NVIDIA bezel correction**: from the case and visible widths of your monitors, the app shows how many pixels the Surround should hide per join, and warns you when your Surround hides a different amount. The angle and the eye distance do not change this value.
 
-Also includes 0.1.5 (own app window, new icon, monitor detection with NVIDIA Surround).
+### Changed
+- `.ini` settings can now be changed only inside their own section (for example `MODE` in `[CAMERA]`), so a key with the same name in another section is never touched.
+
+Before using Assetto Corsa or Le Mans Ultimate, read the [known limitations](https://github.com/OptimusZuka/OZPanorama/blob/main/docs/LIMITATIONS.md).
 
 ### Downloads
 - **OZPanorama_Setup_{VERSION}.exe** - installer (English, Português, Español, Français), for your user only, no administrator rights. Uninstalling never deletes the backups in `Documents\OZPanorama\backups`.

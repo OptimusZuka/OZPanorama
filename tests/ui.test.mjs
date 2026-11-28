@@ -228,7 +228,7 @@ test("Surround: sem clique só se lê o estado (nada muda no Windows); token em 
   assert.ok(srv.requests.length > 0 && srv.requests.every((r) => r.token === token));
   assert.ok(srv.requests.filter((r) => r.method === "POST").every((r) => r.type === "application/json"));
   const ids = await page.$$eval("#games button[data-k]", (els) => els.map((e) => e.dataset.k));
-  assert.deepEqual(ids.sort(), ["ats", "ets2", "iracing", "msfs", "raceroom"]);
+  assert.deepEqual(ids.sort(), ["ac", "ats", "ets2", "iracing", "lmu", "msfs", "raceroom"]);
 });
 
 test("Línguas: as mesmas do RealFFB, escolhidas pelo Windows e trocáveis", async () => {
@@ -301,6 +301,45 @@ test("RaceRoom: valores do menu Field of view em cm e graus, a partir do rig", a
   assert.match(out, /screenAngleLeft=56\b/);
   assert.match(out, /screenBezelMiddle=0\b/);
   assert.match(out, /tripleScreenSeparateSizes=false/);
+});
+
+test("Assetto Corsa: triple_screen.ini do motor e valores enviados ao servidor", async () => {
+  const { srv, page } = await app();
+  await page.click("#presetZuka"); await step2(page, "ac");
+  const out = await page.textContent("#out");
+  assert.match(out, /^\[TRIPLE_SCREEN\]\nACTIVE=1\n/);
+  assert.match(out, /\[CENTER_SCREEN\]\nLEFT_POINT=-0\.\d{6},0\.710000\nRIGHT_POINT=0\.\d{6},0\.710000/);
+  assert.match(out, /SP_ROTATION=56\nSP_DISTANCE=710/);
+  await page.waitForTimeout(400);
+  const pv = srv.requests.filter((r) => r.path === "/api/preview" && r.body.game === "ac").pop();
+  assert.ok(pv && pv.body.values.triple === out && pv.body.values.width === 5838 && pv.body.values.height === 1080);
+});
+
+test("Correção de molduras recomendada pelas caixas e áreas visíveis (rig de exemplo: 55 px, Surround atual 39 px)", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka");
+  const t = await page.textContent("#bezelAdvice");
+  assert.match(t, /\b56 px\b/); assert.match(t, /55[.,]5 px/); assert.match(t, /17[.,]2 mm/);
+  assert.match(t, /\b39 px\b/, "avisa que o Surround atual esconde menos do que devia");
+  await setField(page, "gap", "17.0");
+  assert.doesNotMatch(await page.textContent("#bezelAdvice"), /\b39 px\b/, "sem aviso quando o Surround já está certo");
+});
+
+test("Le Mans Ultimate: vistas ajustadas ao modelo do jogo e enviadas ao servidor", async () => {
+  const { srv, page } = await app();
+  await page.click("#presetZuka"); await step2(page, "lmu");
+  const out = await page.textContent("#out");
+  assert.match(out, /^SubViews=2\nUseSubViewParams=2\nViewParams=\(0\.\d{3}, 0\.\d{3}, 0\.710, 56\.000, -?0\.\d{3}\)/);
+  await page.waitForTimeout(400);
+  const pv = srv.requests.filter((r) => r.path === "/api/preview" && r.body.game === "lmu").pop();
+  assert.ok(pv && /^\d\.\d{3}, \d\.\d{3}, 0\.710, 56\.000, -?\d\.\d{3}$/.test(pv.body.values.LeftView) && pv.body.values.width === 5838);
+});
+
+test("Assetto Corsa: resoluções diferentes recusadas (o jogo só divide em terços iguais)", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka"); await setField(page, "xC", "2560"); await setField(page, "yC", "1440"); await step2(page, "ac");
+  assert.match(await page.innerHTML("#alerts2"), /three equal parts|três partes iguais/);
+  assert.equal(await page.textContent("#out"), "");
 });
 
 test("Detetar monitores: três monitores iguais são três e ficam colocados (auditoria M4)", async () => {

@@ -230,6 +230,66 @@ namespace OZPanorama.Tests
                 Throws("format", () => Ops.MakePreview("raceroom", vals), "B/RaceRoom: ficheiro sem as chaves recusado");
             }
 
+            // ---------- Le Mans Ultimate (experimental) ----------
+            {
+                var inst = Fresh("lmu_install"); var ud = Path.Combine(inst, "UserData"); Directory.CreateDirectory(ud);
+                var cfg = Path.Combine(ud, "Config_DX11.ini");
+                // Estrutura do ficheiro gerado pelo jogo no primeiro arranque (CRLF, cabeçalho antes da secção).
+                Func<string, string, string, string, string, string> C = (sv, us, vp, lv, rv) =>
+                    "//[[gMa1.002f (c)2016    ]] [[            ]]\r\n[COMPONENTS]\r\nVideoResW=5870\r\nVideoResH=1080\r\nWindowedMode=0\r\nBorderless=0\r\nSubViews=" + sv + "\r\nUseSubViewParams=" + us + "\r\nWorkaroundFlags=0\r\n" +
+                    "ViewParams=(" + vp + ") // screen width (m), screen height (m), eye distance (m), side angle (deg), bezel gap (m)\r\nLeftView=(" + lv + ")\r\nRightView=(" + rv + ")\r\nCustomVidRes=(0, 0)\r\n\r\n[INSTALL]\r\nInstallFrom=\r\n";
+                const string D0 = "0.540, 0.340, 0.600, 15.000, 0.037";
+                File.WriteAllBytes(cfg, Encoding.ASCII.GetBytes(C("0", "1", D0, D0, D0)));
+                var g = (LeMansUltimate)Registry.Get("lmu"); g.InstallProvider = () => inst; g.ScreensProvider = () => new List<int[]> { new[] { 5870, 1080, 0, 0, 1 } };
+                const string V = "0.606, 0.335, 0.710, 55.300, 0.000";
+                var vals = new Dictionary<string, object> { { "ViewParams", V }, { "LeftView", V }, { "RightView", V }, { "width", 5870 }, { "height", 1080 } };
+                var r = Go("lmu", vals);
+                Check(r.Ok && File.ReadAllText(cfg) == C("2", "2", V, V, V), "A/LMU: SubViews, UseSubViewParams e as três vistas escritos; comentário e resto intactos");
+                var rs = Ops.Restore(r.Backup.Id, true, false);
+                Check(rs.Ok && File.ReadAllText(cfg) == C("0", "1", D0, D0, D0), "A/LMU: restauro repõe o original");
+                foreach (var bad in new[] { "0.606, 0.335, 0.710, 95.000, 0.000", "0.606,0.335,0.710,55.300,0.000", "0.606, 0.335, 0.710, 55.300", "9.000, 0.335, 0.710, 55.300, 0.000", "0.606, 0.335, 0.710, 55.300, 0.500", "" })
+                    Throws("input", () => Ops.MakePreview("lmu", new Dictionary<string, object> { { "ViewParams", bad }, { "LeftView", V }, { "RightView", V } }), "B/LMU: vista inválida recusada");
+                File.WriteAllText(cfg, "[COMPONENTS]\r\nSubViews=0\r\nViewParams=(" + D0 + ")\r\n");
+                Throws("format", () => Ops.MakePreview("lmu", vals), "B/LMU: ficheiro sem LeftView/RightView recusado");
+                g.InstallProvider = () => null;
+                Throws("missing", () => Ops.MakePreview("lmu", vals), "B/LMU: sem instalação recusado");
+                g.InstallProvider = () => inst; File.Delete(cfg);
+                Throws("missing", () => Ops.MakePreview("lmu", vals), "B/LMU: sem Config_DX11.ini (jogo nunca aberto) recusado");
+            }
+
+            // ---------- Assetto Corsa (experimental) ----------
+            {
+                var docs = Fresh("docs_ac"); var dir = Path.Combine(docs, "Assetto Corsa", "cfg"); Directory.CreateDirectory(dir);
+                var video = Path.Combine(dir, "video.ini"); var tri = Path.Combine(dir, "triple_screen.ini");
+                // Estrutura real do video.ini (LF, como o jogo o grava); MODE também aparece noutra secção para testar a regra por secção.
+                Func<string, string> V = mode => "[ASSETTOCORSA]\nHIDE_ARMS=1\n\n[CAMERA]\nMODE=" + mode + "\n\n[FAKE_SECTION]\nMODE=NAO_MEXER\n\n[VIDEO]\nFULLSCREEN=1\nHEIGHT=1080\nWIDTH=5838\n";
+                File.WriteAllText(video, V("DEFAULT"), new UTF8Encoding(false));
+                var g = (AssettoCorsa)Registry.Get("ac"); g.Root = docs; g.ScreensProvider = () => new List<int[]> { new[] { 5870, 1080, 0, 0, 1 } };
+                // Saída do motor (engine.js acPlan) para o rig de referência com 55 px por junção.
+                const string T = "[TRIPLE_SCREEN]\nACTIVE=1\n\n[LEFT_SCREEN]\nLEFT_POINT=-0.650160,0.211575\nRIGHT_POINT=-0.303404,0.712355\n\n[CENTER_SCREEN]\nLEFT_POINT=-0.302147,0.710000\nRIGHT_POINT=0.302147,0.710000\n\n[RIGHT_SCREEN]\nLEFT_POINT=0.303404,0.712355\nRIGHT_POINT=0.650160,0.211575\n\n[SPINNERS]\nSP_MARGINS=17\nSP_ROTATION=55\nSP_DISTANCE=710\nSP_WIDTH=593\n";
+                var vals = new Dictionary<string, object> { { "triple", T }, { "width", 5870 }, { "height", 1080 } };
+                var pv = Ops.MakePreview("ac", vals);
+                Check(pv.Plan.Warnings.Any(w => w.Contains("5838×1080")), "A/AC: aviso de resolução do jogo diferente da do Surround (sem a alterar)");
+                var r = Go(pv);
+                Check(r.Ok && File.ReadAllText(video) == V("TRIPLE"), "A/AC: só [CAMERA] MODE muda; MODE de outra secção e resto intactos");
+                Check(File.Exists(tri) && File.ReadAllText(tri) == T.Replace("\n", "\r\n"), "A/AC: triple_screen.ini criado com CRLF");
+                Check(r.Backup.Files.Any(f => f.Original == tri && !f.Existed), "A/AC: backup regista que o triple_screen.ini não existia");
+                // Ficheiro existente (valores do launcher): substituído e guardado no backup; o restauro repõe-no.
+                var old = "[TRIPLE_SCREEN]\r\nACTIVE=1\r\n\r\n[LEFT_SCREEN]\r\nLEFT_POINT=-0.903749,0.339754\r\nRIGHT_POINT=-0.34,0.72\r\n";
+                File.WriteAllText(tri, old); File.WriteAllText(video, V("DEFAULT"), new UTF8Encoding(false));
+                var r2 = Go("ac", vals);
+                Check(r2.Ok && File.ReadAllText(tri) == T.Replace("\n", "\r\n"), "A/AC: triple_screen.ini existente substituído");
+                var rs = Ops.Restore(r2.Backup.Id, true, false);
+                Check(rs.Ok && File.ReadAllText(tri) == old && File.ReadAllText(video) == V("DEFAULT"), "A/AC: restauro repõe os dois ficheiros originais");
+                // Conteúdo inválido nunca chega ao disco.
+                foreach (var bad in new[] { T.Replace("0.710000", "abc"), T.Replace("SP_WIDTH=593", "SP_WIDTH=593\nEXTRA=1"), T.Replace("[CENTER_SCREEN]", "[OUTRA]"), T.Replace("-0.650160", "-99.000000"), "" })
+                    Throws("input", () => Ops.MakePreview("ac", new Dictionary<string, object> { { "triple", bad }, { "width", 5870 }, { "height", 1080 } }), "B/AC: triple_screen.ini inválido recusado");
+                File.WriteAllText(video, "[VIDEO]\nWIDTH=5870\n");
+                Throws("format", () => Ops.MakePreview("ac", vals), "B/AC: video.ini sem [CAMERA] MODE recusado");
+                File.WriteAllText(video, "[CAMERA]\nMODE=DEFAULT\nMODE=TRIPLE\n");
+                Throws("format", () => Ops.MakePreview("ac", vals), "B/AC: MODE repetido em [CAMERA] recusado");
+            }
+
             // ---------- Auditoria 0.1.3 ----------
             {
                 // M5: só o formato exato do .sii gerado pelo motor é aceite.

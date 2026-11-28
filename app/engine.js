@@ -248,15 +248,81 @@ function physicalGap(rig) {
 }
 
 // --- Assetto Corsa ---------------------------------------------------------------
-export function acIni(rig) {
-  const sec = { left: "LEFT_SCREEN", center: "CENTER_SCREEN", right: "RIGHT_SCREEN" };
-  const xy = (v) => `${(v[0] / 1000).toFixed(6)},${(-v[2] / 1000).toFixed(6)}`;
+// triple_screen.ini (Documentos\Assetto Corsa\cfg): pontos em metros, vistos de cima, x para a direita e y para a frente
+// (confirmado no ficheiro do rig: centro de 680 mm a 720 mm = ±0,34 e 0,72; lateral de 0,68 m rodado 34°).
+// O AC divide a imagem em três terços iguais da largura total. Com a correção de molduras do Surround, cada terço
+// inclui alguns píxeis escondidos: o terço é o plano do próprio monitor prolongado até aos píxeis que cobre. Só
+// píxeis escondidos ficam fora da área visível, por isso a imagem visível fica exata.
+export function acPlan(rig) {
+  const order = ["left", "center", "right"].map((n) => monitorOf(rig, n));
+  const x0 = Math.min(...order.map((m) => m.desktop_px[0]));
+  const W = Math.max(...order.map((m) => m.desktop_px[0] + m.desktop_px[2])) - x0, H = Math.max(...order.map((m) => m.desktop_px[3]));
+  const third = W / 3, problems = [], pts = [];
+  order.forEach((m, i) => {
+    const [dx, , rx] = m.desktop_px, pitch = m.width_mm / rx, rel = dx - x0;
+    const s0 = i * third - rel, s1 = (i + 1) * third - rel;
+    // O terço só pode invadir píxeis escondidos (folga do Surround), nunca píxeis visíveis de outro monitor.
+    const prevEnd = i === 0 ? 0 : order[i - 1].desktop_px[0] + order[i - 1].desktop_px[2] - x0;
+    const nextStart = i === 2 ? W : order[i + 1].desktop_px[0] - x0;
+    if (s0 > 1 || i * third < prevEnd - 1 || s1 < rx - 1 || (i + 1) * third > nextStart + 1) problems.push(m.name);
+    const p = (s) => add(m.center, mul(m.right, s * pitch - m.width_mm / 2));
+    pts.push([p(s0), p(s1)]);
+  });
+  const c = monitorOf(rig, "center"), yl = orientation(order[0]).yaw, yr = -orientation(order[2]).yaw;
+  const sec = ["LEFT_SCREEN", "CENTER_SCREEN", "RIGHT_SCREEN"];
+  const xy = (v) => `${f6(v[0] / 1000)},${f6(-v[2] / 1000)}`;
   const L = ["[TRIPLE_SCREEN]", "ACTIVE=1", ""];
-  for (const n of ["left", "center", "right"]) { const c = corners(monitorOf(rig, n)); L.push(`[${sec[n]}]`, `LEFT_POINT=${xy(c.bl)}`, `RIGHT_POINT=${xy(c.br)}`, ""); }
-  const c = monitorOf(rig, "center"), yl = orientation(monitorOf(rig, "left")).yaw, yr = -orientation(monitorOf(rig, "right")).yaw;
-  L.push("[SPINNERS]", `SP_MARGINS=${Math.round(physicalGap(rig))}`, `SP_ROTATION=${Math.round((yl + yr) / 2)}`, `SP_DISTANCE=${Math.round(-c.center[2])}`, `SP_WIDTH=${Math.round(c.width_mm)}`);
-  return L.join("\n") + "\n";
+  pts.forEach(([a, b], i) => L.push(`[${sec[i]}]`, `LEFT_POINT=${xy(a)}`, `RIGHT_POINT=${xy(b)}`, ""));
+  // Os SPINNERS também contam para o jogo (validado no rig a 23/11: com SP_MARGINS=17 e o Surround a esconder 55 px, a
+  // imagem ficava cortada nas molduras; com 0 ficou certa). Com a correção de molduras do Surround a moldura já está
+  // nos píxeis escondidos, por isso a margem é 0; sem ela, a margem é a folga física entre áreas visíveis.
+  const hidden = order.some((m, i) => i > 0 && m.desktop_px[0] - (order[i - 1].desktop_px[0] + order[i - 1].desktop_px[2]) > 0);
+  L.push("[SPINNERS]", `SP_MARGINS=${hidden ? 0 : Math.round(physicalGap(rig))}`, `SP_ROTATION=${Math.round((yl + yr) / 2)}`, `SP_DISTANCE=${Math.round(-c.center[2])}`, `SP_WIDTH=${Math.round(c.width_mm)}`);
+  return { text: L.join("\n") + "\n", width: W, height: H, problems, asymmetric: Math.abs(yl - yr) > 0.5 };
 }
+export const acIni = (rig) => acPlan(rig).text;
+
+// --- Le Mans Ultimate (motor do rFactor 2) ----------------------------------------
+// Config_DX11.ini ([COMPONENTS], na pasta UserData da instalação): SubViews=2 liga as três vistas;
+// ViewParams/LeftView/RightView=(largura m, altura m, distância dos olhos m, ângulo lateral °, folga m).
+// O jogo divide a imagem em três terços iguais e modela três planos: o central à distância dos olhos e os laterais
+// articulados na ponta do central (+ folga), rodados pelo ângulo. Como cada terço do Surround inclui píxeis
+// escondidos, a largura e a folga certas não são as medidas físicas: procura-se a largura e a folga do modelo do jogo
+// que põem cada píxel visível na direção física real (erro angular visto dos olhos), com o ângulo e a distância reais.
+export function lmuModel(w, g, aL, aR, eye) {
+  const rad = (a) => (a * Math.PI) / 180;
+  return (i, t) => {
+    if (i === 1) return [(t - 0.5) * w, eye];
+    const s = i === 0 ? -1 : 1, a = rad(i === 0 ? aL : aR), u = (i === 0 ? 1 - t : t) * w;
+    return [s * (w / 2 + g) + s * u * Math.cos(a), eye - u * Math.sin(a)];
+  };
+}
+export function lmuPlan(rig) {
+  const order = ["left", "center", "right"].map((n) => monitorOf(rig, n));
+  const x0 = Math.min(...order.map((m) => m.desktop_px[0]));
+  const W = Math.max(...order.map((m) => m.desktop_px[0] + m.desktop_px[2])) - x0, H = Math.max(...order.map((m) => m.desktop_px[3]));
+  const third = W / 3, problems = [];
+  order.forEach((m, i) => {
+    const s0 = i * third - (m.desktop_px[0] - x0), s1 = (i + 1) * third - (m.desktop_px[0] - x0);
+    const prevEnd = i === 0 ? 0 : order[i - 1].desktop_px[0] + order[i - 1].desktop_px[2] - x0, nextStart = i === 2 ? W : order[i + 1].desktop_px[0] - x0;
+    if (s0 > 1 || i * third < prevEnd - 1 || s1 < m.desktop_px[2] - 1 || (i + 1) * third > nextStart + 1) problems.push(m.name);
+  });
+  const c = monitorOf(rig, "center"), eye = -c.center[2];
+  const aL = orientation(order[0]).yaw, aR = -orientation(order[2]).yaw;
+  // Direção (vista de cima) de amostras de píxeis visíveis.
+  const samples = [];
+  for (const m of order) { const [dx, , rx] = m.desktop_px; for (let k = 0; k < rx; k += 12) { const gp = dx - x0 + k + 0.5, i = Math.min(2, Math.floor(gp / third)), p = pointOn(m, (k + 0.5) / rx, 0.5); samples.push([i, (gp - i * third) / third, Math.atan2(p[0], -p[2])]); } }
+  const worst = (w, g) => { const f = lmuModel(w, g, aL, aR, eye); let e = 0; for (const [i, t, ang] of samples) { const q = f(i, t); e = Math.max(e, Math.abs(Math.atan2(q[0], q[1]) - ang)); } return (e * 180) / Math.PI; };
+  const w0 = third * (c.width_mm / c.desktop_px[2]);
+  let best = [Infinity, w0, 0];
+  for (let w = w0 * 0.92; w <= w0 * 1.08; w += 2) for (let g = -20; g <= 40; g += 2) { const e = worst(w, g); if (e < best[0]) best = [e, w, g]; }
+  for (let w = best[1] - 2; w <= best[1] + 2; w += 0.1) for (let g = best[2] - 2; g <= best[2] + 2; g += 0.1) { const e = worst(w, g); if (e < best[0]) best = [e, w, g]; }
+  const [err, w, g] = best, h = (w * H) / third;
+  const f3 = (v) => (Math.abs(v) < 5e-4 ? 0 : v).toFixed(3);
+  const tuple = (a) => `${f3(w / 1000)}, ${f3(h / 1000)}, ${f3(eye / 1000)}, ${f3(a)}, ${f3(g / 1000)}`;
+  return { width: W, height: H, problems, errDeg: err, view: tuple((aL + aR) / 2), left: tuple(aL), right: tuple(aR), asymmetric: Math.abs(aL - aR) > 0.5 };
+}
+
 
 // --- ACC e iRacing ---------------------------------------------------------------
 export function accValues(rig) {

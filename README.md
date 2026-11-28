@@ -50,6 +50,8 @@ and **writes the right values into the game's files**, with a backup and a check
 | American Truck Simulator | Tested | Same as ETS2 |
 | iRacing | Tested | 7 settings in `rendererDX11Monitor.ini` |
 | RaceRoom Racing Experience | Tested | Triple screen settings in `graphics_options.xml` (distance, screen sizes, bezels, angles) |
+| Assetto Corsa | Tested (with Content Manager) | `triple_screen.ini` (position of each screen) and `MODE=TRIPLE` in `video.ini` |
+| Le Mans Ultimate | Experimental | The three views (`SubViews=2`) and `ViewParams` / `LeftView` / `RightView` in `Config_DX11.ini` |
 
 "Tested" means tested by the author on his own rig (three 27" monitors). Other rigs may behave differently:
 use **Report a problem** in the app.
@@ -57,7 +59,7 @@ use **Report a problem** in the app.
 ## What it does for you
 
 - **Detect monitors**: reads each monitor's name and size, even with NVIDIA Surround on, and places them left / center / right.
-- **Bezels**: calculated from the Surround bezel correction, or from the manufacturers' sheets for known monitors.
+- **Bezels**: calculated from the manufacturers' sheets for known monitors, with the **recommended NVIDIA bezel correction** in pixels (and a warning when the Surround hides a different amount).
 - **Side angle**: enter the distance between the outer ends of the left and right monitors and the angle appears by itself.
 - **Top view to scale**: your monitors and a head with real proportions, so you can see if it looks right.
 - **NVIDIA Surround on/off with one click**: uses profiles saved by the NVIDIA driver itself, with confirmation.

@@ -20,7 +20,7 @@ namespace OZPanorama
 {
     public static class AppInfo
     {
-        public const string Version = "0.1.6-beta";
+        public const string Version = "0.1.7-beta";
         public static string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OZPanorama");
         public static string BackupDir { get { return Path.Combine(DataDir, "backups"); } }
         /// <summary>Ficheiros só do programa (perfil da janela do Edge, script do Surround): fora dos Documentos, que podem estar no OneDrive.</summary>
@@ -118,12 +118,24 @@ namespace OZPanorama
         public string NewValue;       // valor novo legível
         public bool AppendIfMissing;  // só para chaves que o jogo aceita acrescentadas (ex.: uset no config.cfg)
         public string AppendLine;     // linha a acrescentar quando falta
+        public string Section;        // != null: só conta dentro desta secção [nome] de um .ini (ex.: MODE em [CAMERA])
     }
 
     public class Change { public string File; public string Key; public string Current; public string New; public bool Changes; }
 
     public static class LinePatcher
     {
+        static readonly Regex SectionHeader = new Regex(@"^\s*\[([^\]]+)\]\s*$");
+
+        /// <summary>Secção de cada linha (null antes do primeiro cabeçalho). Os cabeçalhos pertencem à própria secção.</summary>
+        static string[] Sections(List<KeyValuePair<string, string>> lines)
+        {
+            var res = new string[lines.Count]; string cur = null;
+            for (int i = 0; i < lines.Count; i++) { var h = SectionHeader.Match(lines[i].Key); if (h.Success) cur = h.Groups[1].Value.Trim(); res[i] = cur; }
+            return res;
+        }
+        static bool InSection(LineRule r, string[] secs, int i) { return r.Section == null || string.Equals(secs[i], r.Section, StringComparison.OrdinalIgnoreCase); }
+
         // Divide mantendo os fins de linha: cada elemento é o conteúdo e o separador original (\n, \r\n ou nada).
         public static List<KeyValuePair<string, string>> Split(string text)
         {
@@ -143,19 +155,21 @@ namespace OZPanorama
         /// aparecer 0 (sem AppendIfMissing) ou mais de 1 vez.</summary>
         public static string Apply(string text, IList<LineRule> rules, string fileLabel, List<Change> changes)
         {
-            var lines = Split(text);
+            var lines = Split(text); var secs = Sections(lines);
             var appends = new List<string>();
             foreach (var r in rules)
             {
                 int hit = -1, count = 0; Match m = null;
                 for (int i = 0; i < lines.Count; i++)
                 {
+                    if (!InSection(r, secs, i)) continue;
                     var mm = r.Match.Match(lines[i].Key);
                     if (mm.Success) { count++; hit = i; m = mm; }
                 }
                 if (count > 1) throw new OzError("format", "O ficheiro tem a definição \"" + r.Key + "\" repetida. Por segurança nada foi alterado.", fileLabel + ": " + r.Key + " aparece " + count + " vezes");
                 if (count == 0)
                 {
+                    if (r.AppendIfMissing && r.Section != null) throw new OzError("format", "O ficheiro não tem a definição \"" + r.Key + "\". Abra o jogo uma vez e configure-o antes; nada foi alterado.", fileLabel + ": " + r.Key + " em falta na secção " + r.Section);
                     if (!r.AppendIfMissing) throw new OzError("format", "O ficheiro não tem a definição \"" + r.Key + "\". Abra o jogo uma vez e configure-o antes; nada foi alterado.", fileLabel + ": " + r.Key + " não encontrada");
                     appends.Add(r.AppendLine);
                     changes.Add(new Change { File = fileLabel, Key = r.Key, Current = "(não existe)", New = r.NewValue, Changes = true });
@@ -179,13 +193,13 @@ namespace OZPanorama
         /// <summary>Validação estrutural: fora das linhas-alvo, tudo igual; cada regra encontra o valor novo.</summary>
         public static void Validate(string before, string after, IList<LineRule> rulesAfter, string fileLabel)
         {
-            var a = Split(before); var b = Split(after);
+            var a = Split(before); var b = Split(after); var sa = Sections(a); var sb = Sections(b);
             var targetsA = new HashSet<int>(); var targetsB = new HashSet<int>();
             foreach (var r in rulesAfter)
             {
-                for (int i = 0; i < a.Count; i++) if (r.Match.IsMatch(a[i].Key)) targetsA.Add(i);
+                for (int i = 0; i < a.Count; i++) if (InSection(r, sa, i) && r.Match.IsMatch(a[i].Key)) targetsA.Add(i);
                 int hits = 0;
-                for (int i = 0; i < b.Count; i++) if (r.Match.IsMatch(b[i].Key)) { targetsB.Add(i); hits++; }
+                for (int i = 0; i < b.Count; i++) if (InSection(r, sb, i) && r.Match.IsMatch(b[i].Key)) { targetsB.Add(i); hits++; }
                 if (hits != 1) throw new OzError("verify", "A verificação do ficheiro novo falhou; nada foi alterado.", fileLabel + ": " + r.Key + " encontrada " + hits + " vezes depois");
             }
             var restA = new List<string>(); var restB = new List<string>();
