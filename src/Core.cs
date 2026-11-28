@@ -20,7 +20,7 @@ namespace OZPanorama
 {
     public static class AppInfo
     {
-        public const string Version = "0.1.7-beta";
+        public const string Version = "0.1.8-beta";
         public static string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OZPanorama");
         public static string BackupDir { get { return Path.Combine(DataDir, "backups"); } }
         /// <summary>Ficheiros só do programa (perfil da janela do Edge, script do Surround): fora dos Documentos, que podem estar no OneDrive.</summary>
@@ -246,6 +246,8 @@ namespace OZPanorama
                 if (!Directory.Exists(dir)) throw new OzError("missing", "A pasta de configuração do jogo não existe. Abra o jogo uma vez antes.", dir);
                 return;
             }
+            // OZP-14: File.Replace trocaria uma ligação simbólica por um ficheiro normal e quebrava a montagem do utilizador.
+            if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new OzError("perm", "O ficheiro de configuração é uma ligação (symlink). Por segurança o OZPanorama não o altera.", path);
             if ((File.GetAttributes(path) & FileAttributes.ReadOnly) != 0) throw new OzError("perm", "O ficheiro de configuração está marcado como só de leitura. Retire essa opção nas propriedades do ficheiro e tente outra vez.", path);
             try { using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { } }
             catch (UnauthorizedAccessException e) { throw new OzError("perm", "O Windows não deixa alterar o ficheiro de configuração.", path + ": " + e.Message); }

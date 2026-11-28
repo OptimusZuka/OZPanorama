@@ -176,6 +176,12 @@
       <form class="panel" id="form" autocomplete="off">
         <fieldset>
           <legend data-t="Monitors (visible area, without bezel)"></legend>
+          <label class="full"><span data-t="Number of monitors"></span><select id="layout">
+            <option value="3" data-t="Three monitors"></option>
+            <option value="2L" data-t="Two monitors: main on the right, side window on the left monitor"></option>
+            <option value="2R" data-t="Two monitors: main on the left, side window on the right monitor"></option>
+          </select></label>
+          <p class="note full" id="layoutNote"></p>
           <label><span data-t="Diagonal (in)"></span><input id="diag" type="number" step="0.1" min="10" max="120"></label>
           <label><span data-t="Aspect ratio"></span><select id="aspect"><option value="16:9">16:9</option><option value="16:10">16:10</option><option value="21:9">21:9</option></select></label>
           <div class="full mtab">
@@ -408,29 +414,36 @@ function readInputs() {
     else Object.assign(m, { width_mm: w, height_mm: h });
     return m;
   };
-  const center = spec("center", "C"), L = spec("left", "L"), R = spec("right", "R");
+  const lay = layoutOf(), useL = lay !== "2R", useR = lay !== "2L";
+  for (const [k, on] of [["L", useL], ["R", useR]]) for (const id of ["w", "h", "x", "y", "ang"]) { const el = $(id === "ang" ? "ang" + k : id + k); if (el) { el.disabled = !on; el.style.opacity = on ? "" : "0.35"; } }
+  $("layoutNote").textContent = lay === "3" ? "" : T("With two monitors, the main monitor uses the Center column and the other monitor uses its own side column. Only Euro Truck Simulator 2 and American Truck Simulator support two monitors.");
+  const center = spec("center", "C"), L = useL ? spec("left", "L") : null, R = useR ? spec("right", "R") : null;
   document.querySelectorAll(".curvC").forEach((e) => (e.style.display = $("curvC").checked ? "" : "none"));
   document.querySelectorAll(".curvS").forEach((e) => (e.style.display = $("curvS").checked ? "" : "none"));
   const rC = $("curvC").checked ? need("rC", T("radius of the curved center monitor")) : null;
   const rS = $("curvS").checked ? need("rS", T("radius of the curved side monitors")) : null;
   if (rC != null) center.curve_radius_mm = rC;
   const sideCurve = rS != null ? { curve_radius_mm: rS } : {};
-  const angL = need("angL", T("left side angle")), angR = need("angR", T("right side angle"));
+  const angL = useL ? need("angL", T("left side angle")) : null, angR = useR ? need("angR", T("right side angle")) : null;
   const gap = need("gap", T("gap between visible areas (0 if none)"));
   const dist = need("dist", T("distance from the eyes to the center screen"));
   const eyeUp = need("eyeUp", T("eye height above the screen center (0 if level)"));
   if (missing.length) errs.unshift(F("Missing: {0}.", missing.join("; ")));
-  return { errs, center, left: { ...L, ...sideCurve, hinge_deg: angL, gap_mm: gap }, right: { ...R, ...sideCurve, hinge_deg: angR, gap_mm: gap }, dist, eyeUp };
+  return { errs, layout: lay, center, left: L && { ...L, ...sideCurve, hinge_deg: angL, gap_mm: gap }, right: R && { ...R, ...sideCurve, hinge_deg: angR, gap_mm: gap }, dist, eyeUp };
 }
+// "3" (três monitores), "2L" (principal à direita, janela esquerda no monitor da esquerda) ou "2R" (o contrário).
+function layoutOf() { const v = $("layout").value; return v === "2L" || v === "2R" ? v : "3"; }
+const sidesOf = (i) => [i.left, i.right].filter(Boolean);
 const arcTooLong = (arc, R) => !(R > 0) || arc / R >= Math.PI;
 const SIDE = { left: "L", center: "C", right: "R" };
 function validate(i) {
   const errs = [...i.errs], warns = [], notes = [];
   if (errs.length) return { errs, warns, notes };
   if (i.dist < 150 || i.dist > 3000) errs.push(T("Eye distance outside the plausible range (150 to 3000 mm)."));
-  for (const a of [i.left.hinge_deg, i.right.hinge_deg]) if (a < 0 || a > 90) errs.push(F("Angle of {0}° outside 0 to 90°.", a));
-  if (i.left.gap_mm < 0 || i.left.gap_mm > 200) errs.push(T("Gap outside 0 to 200 mm."));
-  for (const m of [i.left, i.center, i.right]) {
+  if (i.eyeUp < -1000 || i.eyeUp > 1000) errs.push(T("Eye height outside the plausible range (-1000 to 1000 mm from the screen center)."));
+  for (const s of sidesOf(i)) if (s.hinge_deg < 0 || s.hinge_deg > 90) errs.push(F("Angle of {0}° outside 0 to 90°.", s.hinge_deg));
+  const g0 = sidesOf(i)[0].gap_mm; if (g0 < 0 || g0 > 200) errs.push(T("Gap outside 0 to 200 mm."));
+  for (const m of [i.left, i.center, i.right].filter(Boolean)) {
     const n = T(MON[SIDE[m.name]]), [rx, ry] = m.res_px;
     if (!(Number.isInteger(rx) && Number.isInteger(ry) && rx >= 320 && ry >= 240 && rx <= 16384 && ry <= 16384)) errs.push(F("{0}: resolution {1}×{2} is not valid.", n, rx, ry));
     if (m.diagonal_in != null && !(m.diagonal_in >= 10 && m.diagonal_in <= 120)) errs.push(F("Diagonal of {0}\" outside 10 to 120 in.", m.diagonal_in));
@@ -443,14 +456,14 @@ function validate(i) {
   }
   if (errs.length) return { errs, warns, notes };
   let calc = false;
-  for (const m of [i.left, i.center, i.right]) {
+  for (const m of [i.left, i.center, i.right].filter(Boolean)) {
     const n = T(MON[SIDE[m.name]]), [w, h, o] = E.specSize(m);
     if (w < 100 || w > 3000) errs.push(F("{0}: width of {1} mm does not look like a screen. Did you measure in millimetres?", n, Math.round(w)));
     else if (Math.abs((w / h) / (m.res_px[0] / m.res_px[1]) - 1) > 0.03) warns.push(F("{0}: the measured proportion does not match the resolution. Check width and height of the visible area.", n));
     if (o === "calculado") calc = true;
   }
   if (calc) warns.push(T("Some size was calculated from the diagonal. Measuring the visible area with a tape measure is more accurate."));
-  for (const [m, d] of [[i.center, i.dist], [i.left, i.dist / 0.85]]) {
+  for (const [m, d] of [[i.center, i.dist], [sidesOf(i)[0], i.dist / 0.85]]) {
     if (!m.curve_radius_mm) continue;
     const arc = E.specSize({ ...m, curve_radius_mm: null })[0], [chord, sag] = E.chordFromArc(arc, m.curve_radius_mm);
     const e = E.curvedFlatErrorDeg(arc, m.curve_radius_mm, d);
@@ -458,6 +471,8 @@ function validate(i) {
       Math.round(m.curve_radius_mm), f1(arc), f1(chord), f1(sag), e.toFixed(2).replace(".", lang === "en" ? "." : ",")));
     if (m === i.center) notes.push(F("Distance to a curved center screen: measure to the line between the screen ends. If you measured to the middle of the screen, subtract {0} mm.", Math.round(sag)));
   }
+  if (i.layout !== "3" && game && game !== "ets2" && game !== "ats") errs.push(T("This simulator needs three monitors. With two monitors, only Euro Truck Simulator 2 and American Truck Simulator are supported."));
+  if (i.layout !== "3") return { errs, warns, notes };
   if (game === "iracing" && Math.abs(i.left.hinge_deg - i.right.hinge_deg) > 0.5) warns.push(F("iRacing uses one angle for both sides: it will use the average, {0}°. Set both sides to the same angle for an exact result.", f1((i.left.hinge_deg + i.right.hinge_deg) / 2)));
   if (!!i.center.curve_radius_mm !== !!i.left.curve_radius_mm && game === "iracing") warns.push(T("Curved and flat mixed: iRacing only accepts three equal screens. It uses \"3 Flat Screens\", with the curved one treated as flat by its chord."));
   return { errs, warns, notes };
@@ -534,16 +549,17 @@ function invalidate(errsHtml = "") {
 // Vista de cima provisória: desenha logo que haja tamanhos, ângulos e distância, mesmo sem resoluções (não mudam a geometria).
 function previewTop(i) {
   try {
-    const a = [i.left.hinge_deg, i.right.hinge_deg];
+    const a = sidesOf(i).map((x) => x.hinge_deg);
     const wait = (msg) => { $("topview").innerHTML = `<p class="note">${esc(T(msg))}</p>`; };
     if (a.some((x) => typeof x !== "number" || !(x >= 0 && x <= 90))) return wait("The drawing appears when the angle of the sides is known: enter the distance between the outer ends, or the angles.");
     // Sem a distância dos olhos ainda: desenha os monitores com a cabeça a 650 mm, avisando que é provisório.
     const noDist = !(i.dist >= 150 && i.dist <= 3000); if (noDist) i = { ...i, dist: 650 };
     const [aw, ah] = $("aspect").value.split(":").map(Number);
     const fix = (m) => ({ ...m, res_px: m.res_px.map((x, n) => (Number.isInteger(x) && x >= 240 ? x : n === 0 ? Math.round((1080 * aw) / ah) : 1080)), diagonal_in: m.diagonal_in == null && m.width_mm == null ? null : m.diagonal_in });
-    const c = fix(i.center), l = { ...fix(i.left), gap_mm: i.left.gap_mm ?? 0, desktop_gap_px: 0 }, r = { ...fix(i.right), gap_mm: i.right.gap_mm ?? 0, desktop_gap_px: 0 };
-    for (const m of [c, l, r]) if (m.width_mm == null && !(m.diagonal_in >= 10)) return;
-    const rig = E.buildRow(c, [l], [r], i.dist, i.eyeUp ?? 0, 0);
+    const side = (x) => (x ? [{ ...fix(x), gap_mm: x.gap_mm ?? 0, desktop_gap_px: 0 }] : []);
+    const c = fix(i.center), l = side(i.left), r = side(i.right);
+    for (const m of [c, ...l, ...r]) if (m.width_mm == null && !(m.diagonal_in >= 10)) return;
+    const rig = E.buildRow(c, l, r, i.dist, i.eyeUp ?? 0, 0);
     $("topview").innerHTML = topView(rig) + (noDist ? `<p class="note">${esc(T("Head drawn at 650 mm for now: enter the distance from your eyes to the center screen."))}</p>` : "");
   } catch (e) { /* sem dados suficientes para desenhar */ }
 }
@@ -553,12 +569,12 @@ function renderInner() {
   const al = [...v.errs.map((e) => `<div class="alert err">${esc(e)}</div>`), ...v.warns.map((w) => `<div class="alert">${esc(w)}</div>`), ...v.notes.map((n) => `<div class="alert info">${esc(n)}</div>`)].join("");
   $("alerts").innerHTML = al; $("alerts2").innerHTML = v.errs.length ? `<div class="alert err">${esc(T("Fix the measurements in step 1 first."))}</div>` : "";
   if (v.errs.length) { invalidate(); previewTop(i); return; }
-  for (const s of [i.left, i.right]) s.desktop_gap_px = $("pxGap").checked ? Math.round(s.gap_mm * s.res_px[0] / E.specSize({ ...s, curve_radius_mm: null })[0]) : 0;
+  for (const s of sidesOf(i)) s.desktop_gap_px = $("pxGap").checked ? Math.round(s.gap_mm * s.res_px[0] / E.specSize({ ...s, curve_radius_mm: null })[0]) : 0;
   let rig;
-  try { rig = E.buildRow(i.center, [i.left], [i.right], i.dist, i.eyeUp, 0); }
+  try { rig = E.buildRow(i.center, i.left ? [i.left] : [], i.right ? [i.right] : [], i.dist, i.eyeUp, 0); }
   catch (e) { invalidate(); $("alerts").innerHTML += `<div class="alert err">${esc(e.message)}</div>`; return; }
   $("topview").innerHTML = topView(rig);
-  const err = E.compareMethods(rig), worstExact = Math.max(err.left.exata, err.right.exata);
+  const err = E.compareMethods(rig), worstExact = Math.max(...sidesOf(i).map((x) => err[x.name].exata));
   let title = "", note = "", text = "", extra = "", values = null, err1 = worstExact, steps = [], limit = "";
   if (game === "ets2" || game === "ats") {
     const plan = E.scsPlan(rig), w = Math.round(plan.width), h = Math.round(plan.height);
@@ -568,6 +584,10 @@ function renderInner() {
     values = { sii: text, width: w, height: h };
     steps = [T("Turns on separate views (r_multimon_mode 4 in config.cfg): each screen gets its own image."), T("Writes multimon_config.sii with each screen's rotation and the crop that off-centres the image."), F("Checks that the game resolution matches the Surround area ({0}×{1}) and warns you if it doesn't.", w, h)];
     limit = T("Needs NVIDIA Surround (or AMD Eyefinity) turned on, with bezel correction if you use it.");
+    if (i.layout !== "3") {
+      extra = `<div class="alert info">${esc(F(i.layout === "2L" ? "Two monitors: the front view and the game menus stay on the main monitor (right) and the left window goes on the left monitor." : "Two monitors: the front view and the game menus stay on the main monitor (left) and the right window goes on the right monitor."))}</div>`;
+      limit = T("With two monitors the game needs one screen across both (AMD Eyefinity supports two monitors; NVIDIA Surround needs three). Uses the custom mode of the game (r_multimon_mode 4), the only one that accepts two monitors. Not yet tested on a rig.");
+    }
   } else if (game === "iracing") {
     const p = E.iracingValues(rig);
     title = "rendererDX11Monitor.ini";
@@ -660,10 +680,10 @@ function bindMsfs() {
 }
 
 // ---------------- Exemplos ----------------
-const EMPTY = { diag: "", aspect: "16:9", wL: "", hL: "", wC: "", hC: "", wR: "", hR: "", xL: "", yL: "", xC: "", yC: "", xR: "", yR: "", rC: "", rS: "", angL: "", angR: "", gap: "", dist: "", eyeUp: "", tA: "", tB: "", tD: "" };
+const EMPTY = { layout: "3", diag: "", aspect: "16:9", wL: "", hL: "", wC: "", hC: "", wR: "", hR: "", xL: "", yL: "", xC: "", yC: "", xR: "", yR: "", rC: "", rS: "", angL: "", angR: "", gap: "", dist: "", eyeUp: "", tA: "", tB: "", tD: "" };
 const PRESETS = {
   vazio: { note: "New rig: enter your measurements or use \"Detect monitors\". No value is assumed.", v: EMPTY, px: false, curvC: false, curvS: false },
-  zuka: { note: "Example: Zuka's test rig, measured on 14/11/2026: three 27\" monitors (curved HP X27c 1500R in the center), eyes at 710 mm, sides at 56°, Surround with 39 px hidden per join.", v: { diag: 27, aspect: "16:9", wL: 597.7, hL: 336.2, wC: 596.9, hC: 336.3, wR: 597.7, hR: 336.2, xL: 1920, yL: 1080, xC: 1920, yC: 1080, xR: 1920, yR: 1080, rC: 1500, rS: "", angL: 56, angR: 56, gap: 12.1, dist: 710, eyeUp: 0, tA: 611.3, tB: 613.8, tD: "" }, px: true, curvC: true, curvS: false },
+  zuka: { note: "Example: Zuka's test rig, measured on 14/11/2026: three 27\" monitors (curved HP X27c 1500R in the center), eyes at 710 mm, sides at 56°, Surround with 39 px hidden per join.", v: { layout: "3", diag: 27, aspect: "16:9", wL: 597.7, hL: 336.2, wC: 596.9, hC: 336.3, wR: 597.7, hR: 336.2, xL: 1920, yL: 1080, xC: 1920, yC: 1080, xR: 1920, yR: 1080, rC: 1500, rS: "", angL: 56, angR: 56, gap: 12.1, dist: 710, eyeUp: 0, tA: 611.3, tB: 613.8, tD: "" }, px: true, curvC: true, curvS: false },
 };
 let presetNote = PRESETS.vazio.note;
 function applyPreset(k) {
@@ -699,6 +719,8 @@ function caseWidths() {
 function spanAngle(write) {
   let d = parseFloat(String($("tD").value).replace(",", "."));
   if (!(d > 0)) { $("tDOut").textContent = ""; return null; }
+  // A conta pelas pontas assume dois laterais iguais; com dois monitores, o ângulo escreve-se à mão.
+  if (layoutOf() !== "3") { $("tDOut").textContent = T("With two monitors, enter the side monitor angle directly."); return null; }
   const [a, b, est] = caseWidths();
   if (!(a > 0 && b > 0)) { $("tDOut").textContent = T("Enter the monitor widths first (or use Detect monitors)."); return null; }
   // Medida em centímetros (ex.: 131 em vez de 1310): três monitores nunca cabem em menos de 30 cm.
@@ -869,6 +891,7 @@ $("apply").addEventListener("click", async () => {
   try {
     const r = await API("/api/apply", { previewId: id, confirm: true });
     if (r.ok) $("applyMsg").innerHTML = `<div class="alert ok"><b>${esc(T("Applied and checked."))}</b> ${esc(F("Backup {0}. You can restore it in \"Backups and restore\".", r.backup))}</div>`;
+    else if (r.status === "falhou-nada-escrito") { lastError = (r.detail || []).join(" | "); $("applyMsg").innerHTML = `<div class="alert">${esc(T("Nothing was written: the file changed (probably the game saved it) before the app could write. The files are as they were; press Apply again."))}</div>`; }
     else if (r.status === "falhou-reposto") { lastError = (r.detail || []).join(" | "); $("applyMsg").innerHTML = `<div class="alert err"><b>${esc(T("Could not apply."))}</b> ${esc(T("The original files were restored and checked. Nothing changed."))}</div>`; }
     else { lastError = (r.detail || []).join(" | "); $("applyMsg").innerHTML = `<div class="alert err"><b>${esc(T("Could not apply or restore automatically."))}</b> ${esc(F("The originals are saved in backup {0}. Use \"Backups and restore\" or open the backup folder.", r.backup))}</div>`; }
   } catch (e) { $("applyMsg").innerHTML = `<div class="alert err"><b>${esc(T("Not applied:"))}</b> ${esc(errText(e))}</div>`; }
@@ -885,7 +908,7 @@ async function loadBackups() {
   if (!r.backups.length) { $("bkList").innerHTML = `<p class="note">${esc(T("No backups yet. They are created every time OZPanorama applies a configuration."))}</p>`; return; }
   $("bkList").innerHTML = r.backups.map((b, i) => {
     const op = b.operacao && b.operacao.startsWith("antes-de-restaurar") ? T("before restoring") : T("before applying");
-    const status = { aplicado: T("applied"), cancelado: T("cancelled (nothing written)"), "cancelado-alterado": T("cancelled (file changed)"), "falhou-reposto": T("failed, originals restored"), "falhou-sem-reposicao": T("failed, restore by hand"), guardado: T("saved"), criado: T("created") }[b.estado] || b.estado;
+    const status = { aplicado: T("applied"), cancelado: T("cancelled (nothing written)"), "cancelado-alterado": T("cancelled (file changed)"), "falhou-reposto": T("failed, originals restored"), "falhou-sem-reposicao": T("failed, restore by hand"), "falhou-nada-escrito": T("failed, nothing written"), "a-aplicar": T("interrupted while applying: check and restore if needed"), "restauro-revertido": T("restore failed, reverted"), "restauro-incompleto": T("restore failed, restore by hand"), guardado: T("saved"), criado: T("created") }[b.estado] || b.estado;
     const files = b.ficheiros.map((f) => `${esc(f.nome)}${f.existia ? "" : " (" + esc(T("did not exist")) + ")"}<span class="st ${esc(f.situacao)}">${esc(T(ST[f.situacao] || f.situacao || ""))}</span>`).join(" · ");
     const allOriginal = b.ficheiros.every((f) => f.situacao === "original");
     return `<div class="bk"><div><b>${esc(b.nomeJogo || b.jogo)}</b> · ${esc(b.criado || "")} <span class="note">· ${esc(op)} · ${esc(status)}</span><div class="note mono">${esc(b.id)}</div></div>
@@ -989,13 +1012,19 @@ $("detect").addEventListener("click", async () => {
   let d; try { d = await API("/api/monitors"); } catch (e) { box.innerHTML = `<div class="alert err">${esc(errText(e))}</div>`; return; }
   const scr = d.screens || [], mons = (d.monitors || []).filter((m) => m.w_mm);
   let resNote = ""; surroundGapPx = null;
-  const wide = scr.find((s) => s.w >= 3 * 1200);
+  // Um 4K (3840×2160) ou um super-ultrawide (5120×1440) é um ecrã só: o Surround/Eyefinity exige a proporção de vários
+  // ecrãs lado a lado e que o Windows tenha pelo menos tantos monitores como os que se supõem juntos.
+  const nMon = (d.monitors || []).filter((m) => m.present !== false).length;
+  const wide = scr.find((s) => s.w >= 2 * 1200 && s.w / s.h >= 2.5);
   if (wide) {
-    const c = COMMON_W.find((w) => 3 * w <= wide.w && (wide.w - 3 * w) % 2 === 0 && (wide.w - 3 * w) / 2 <= 200);
+    const fit = (n) => COMMON_W.find((w) => n * w <= wide.w && (wide.w - n * w) % (n - 1) === 0 && (wide.w - n * w) / (n - 1) <= 200);
+    const n = nMon >= 3 && fit(3) ? 3 : nMon === 2 && fit(2) ? 2 : 0, c = n ? fit(n) : null;
+    if (c && n === 2) $("layout").value = $("layout").value === "2R" ? "2R" : "2L";
+    if (c && n === 3) $("layout").value = "3";
     if (c) {
       for (const k of ["L", "C", "R"]) { $("x" + k).value = c; $("y" + k).value = wide.h; }
-      const gp = (wide.w - 3 * c) / 2; $("pxGap").checked = gp > 0; if (gp > 0) surroundGapPx = gp;
-      resNote = F("Surround detected: {0}×{1} = 3 × {2} + {3} px hidden per join.", wide.w, wide.h, c, gp);
+      const gp = (wide.w - n * c) / (n - 1); $("pxGap").checked = gp > 0; if (gp > 0) surroundGapPx = gp;
+      resNote = F("Surround detected: {0}×{1} = {4} × {2} + {3} px hidden per join.", wide.w, wide.h, c, gp, n);
     }
   } else if (scr.length) {
     const s3 = [...scr].sort((a, b) => a.x - b.x);

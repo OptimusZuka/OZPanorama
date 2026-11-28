@@ -142,6 +142,24 @@ namespace OZPanorama.Tests
                 Check(Sha(f) == h, "C/falha em " + point + ": original intacto");
                 Check(Directory.GetFiles(d).Length == 1, "C/falha em " + point + ": sem temporários deixados");
             }
+            // OZP-02: o ficheiro muda (o jogo gravou) entre a confirmação e a primeira escrita: nada é escrito e a
+            // mensagem não manda restaurar (o que apagaria a alteração do outro programa).
+            {
+                var d = Fresh("antes_primeira"); var f = Path.Combine(d, "UserCfg.opt"); File.WriteAllText(f, MsfsSample("\r\n")); Msfs(f);
+                var pv = Ops.MakePreview("msfs", MsfsValues(30, 30, "0")); Ops.Prepare(pv.Id);
+                var alheio = MsfsSample("\r\n") + "\r\n// gravado pelo jogo\r\n";
+                Faults.OnPoint = pt => { if (pt == "before-first-write") { Faults.OnPoint = null; File.WriteAllText(f, alheio); } };
+                Ops.ApplyResult r; try { r = Ops.Apply(pv.Id, true); } finally { Faults.OnPoint = null; }
+                Check(!r.Ok && r.Status == "falhou-nada-escrito" && File.ReadAllText(f) == alheio, "B/OZP-02: alterado antes da primeira escrita: nada escrito, alteração alheia intacta");
+                Check(!r.Message.Contains("Backups e Restauro") && BackupStore.Find(r.Backup.Id).Status == "falhou-nada-escrito", "B/OZP-02: mensagem não manda restaurar; backup marcado");
+            }
+            // OZP-01: com "esconder atrás das molduras" o valor do MSFS passa de 90 (ex.: 91,52 no rig de referência).
+            {
+                var d = Fresh("msfs_acima_90"); var f = Path.Combine(d, "UserCfg.opt"); File.WriteAllText(f, MsfsSample("\r\n")); Msfs(f);
+                var r = Go("msfs", MsfsValues(91.52, 91.52, "0"));
+                Check(r.Ok, "A/OZP-01: MSFS aceita os valores acima de 90 que o motor calcula");
+                Throws("input", () => Ops.MakePreview("msfs", MsfsValues(181, 30, "0")), "B/OZP-01: acima de 180 continua recusado");
+            }
             {
                 var d = Fresh("falha_backup"); var f = Path.Combine(d, "UserCfg.opt"); File.WriteAllText(f, MsfsSample("\r\n")); Msfs(f);
                 var h = Sha(f); var pv = Ops.MakePreview("msfs", MsfsValues(30, 30, "0"));
@@ -281,6 +299,14 @@ namespace OZPanorama.Tests
                 Check(r2.Ok && File.ReadAllText(tri) == T.Replace("\n", "\r\n"), "A/AC: triple_screen.ini existente substituído");
                 var rs = Ops.Restore(r2.Backup.Id, true, false);
                 Check(rs.Ok && File.ReadAllText(tri) == old && File.ReadAllText(video) == V("DEFAULT"), "A/AC: restauro repõe os dois ficheiros originais");
+                // OZP-05: o restauro falha entre os dois ficheiros: o primeiro, já restaurado, volta ao estado de antes do restauro.
+                {
+                    var r3 = Go("ac", vals);
+                    Faults.OnPoint = pt => { if (pt == "restore-between-files") { Faults.OnPoint = null; throw new IOException("falha simulada"); } };
+                    Ops.RestoreResult rf; try { rf = Ops.Restore(r3.Backup.Id, true, false); } finally { Faults.OnPoint = null; }
+                    Check(!rf.Ok && File.ReadAllText(tri) == T.Replace("\n", "\r\n") && File.ReadAllText(video) == V("TRIPLE"), "C/OZP-05: restauro interrompido revertido para o estado de antes");
+                    Check(BackupStore.Find(rf.SafetyBackup.Id).Status == "restauro-revertido" && rf.Message.Contains("voltaram"), "C/OZP-05: estado e mensagem do restauro revertido");
+                }
                 // Conteúdo inválido nunca chega ao disco.
                 foreach (var bad in new[] { T.Replace("0.710000", "abc"), T.Replace("SP_WIDTH=593", "SP_WIDTH=593\nEXTRA=1"), T.Replace("[CENTER_SCREEN]", "[OUTRA]"), T.Replace("-0.650160", "-99.000000"), "" })
                     Throws("input", () => Ops.MakePreview("ac", new Dictionary<string, object> { { "triple", bad }, { "width", 5870 }, { "height", 1080 } }), "B/AC: triple_screen.ini inválido recusado");

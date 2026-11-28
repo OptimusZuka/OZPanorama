@@ -1215,10 +1215,10 @@ export const ROWS = [
 "Détection…"
 ],
   [
-"Surround detected: {0}×{1} = 3 × {2} + {3} px hidden per join.",
-"Surround detectado: {0}×{1} = 3 × {2} + {3} px escondidos por junção.",
-"Surround detectado: {0}×{1} = 3 × {2} + {3} px ocultos por unión.",
-"Surround détecté : {0}×{1} = 3 × {2} + {3} px masqués par jonction."
+"Surround detected: {0}×{1} = {4} × {2} + {3} px hidden per join.",
+"Surround detectado: {0}×{1} = {4} × {2} + {3} px escondidos por junção.",
+"Surround detectado: {0}×{1} = {4} × {2} + {3} px ocultos por unión.",
+"Surround détecté : {0}×{1} = {4} × {2} + {3} px masqués par jonction."
 ],
   [
 "Separate screens (left → right):",
@@ -1837,6 +1837,102 @@ export const ROWS = [
 "Precisa do NVIDIA Surround (ou AMD Eyefinity) e de três telas com a mesma resolução. Testado no rig do autor com o Content Manager.",
 "Necesita NVIDIA Surround (o AMD Eyefinity) y tres pantallas con la misma resolución. Probado en el rig del autor con Content Manager.",
 "Nécessite NVIDIA Surround (ou AMD Eyefinity) et trois écrans de même résolution. Testé sur le rig de l'auteur avec Content Manager."
+],
+  [
+"Number of monitors",
+"Número de monitores",
+"Número de monitores",
+"Nombre d'écrans"
+],
+  [
+"Three monitors",
+"Três monitores",
+"Tres monitores",
+"Trois écrans"
+],
+  [
+"Two monitors: main on the right, side window on the left monitor",
+"Dois monitores: principal à direita, janela lateral no monitor da esquerda",
+"Dos monitores: principal a la derecha, ventana lateral en el monitor izquierdo",
+"Deux écrans : principal à droite, fenêtre latérale sur l'écran de gauche"
+],
+  [
+"Two monitors: main on the left, side window on the right monitor",
+"Dois monitores: principal à esquerda, janela lateral no monitor da direita",
+"Dos monitores: principal a la izquierda, ventana lateral en el monitor derecho",
+"Deux écrans : principal à gauche, fenêtre latérale sur l'écran de droite"
+],
+  [
+"With two monitors, the main monitor uses the Center column and the other monitor uses its own side column. Only Euro Truck Simulator 2 and American Truck Simulator support two monitors.",
+"Com dois monitores, o principal usa a coluna Centro e o outro usa a coluna do seu lado. Só o Euro Truck Simulator 2 e o American Truck Simulator aceitam dois monitores.",
+"Con dos monitores, el principal usa la columna Centro y el otro usa la columna de su lado. Solo Euro Truck Simulator 2 y American Truck Simulator admiten dos monitores.",
+"Avec deux écrans, le principal utilise la colonne Centre et l'autre la colonne de son côté. Seuls Euro Truck Simulator 2 et American Truck Simulator acceptent deux écrans."
+],
+  [
+"This simulator needs three monitors. With two monitors, only Euro Truck Simulator 2 and American Truck Simulator are supported.",
+"Este simulador precisa de três monitores. Com dois monitores, só o Euro Truck Simulator 2 e o American Truck Simulator são suportados.",
+"Este simulador necesita tres monitores. Con dos monitores, solo se admiten Euro Truck Simulator 2 y American Truck Simulator.",
+"Ce simulateur nécessite trois écrans. Avec deux écrans, seuls Euro Truck Simulator 2 et American Truck Simulator sont pris en charge."
+],
+  [
+"Two monitors: the front view and the game menus stay on the main monitor (right) and the left window goes on the left monitor.",
+"Dois monitores: a vista da frente e os menus do jogo ficam no monitor principal (direita) e a janela esquerda vai para o monitor da esquerda.",
+"Dos monitores: la vista frontal y los menús del juego quedan en el monitor principal (derecha) y la ventana izquierda va al monitor izquierdo.",
+"Deux écrans : la vue avant et les menus du jeu restent sur l'écran principal (droite) et la fenêtre gauche va sur l'écran de gauche."
+],
+  [
+"Two monitors: the front view and the game menus stay on the main monitor (left) and the right window goes on the right monitor.",
+"Dois monitores: a vista da frente e os menus do jogo ficam no monitor principal (esquerda) e a janela direita vai para o monitor da direita.",
+"Dos monitores: la vista frontal y los menús del juego quedan en el monitor principal (izquierda) y la ventana derecha va al monitor derecho.",
+"Deux écrans : la vue avant et les menus du jeu restent sur l'écran principal (gauche) et la fenêtre droite va sur l'écran de droite."
+],
+  [
+"With two monitors the game needs one screen across both (AMD Eyefinity supports two monitors; NVIDIA Surround needs three). Uses the custom mode of the game (r_multimon_mode 4), the only one that accepts two monitors. Not yet tested on a rig.",
+"Com dois monitores o jogo precisa de uma tela única sobre os dois (o AMD Eyefinity aceita dois monitores; o NVIDIA Surround precisa de três). Usa o modo personalizado do jogo (r_multimon_mode 4), o único que aceita dois monitores. Ainda não testado num rig.",
+"Con dos monitores el juego necesita una pantalla única sobre los dos (AMD Eyefinity admite dos monitores; NVIDIA Surround necesita tres). Usa el modo personalizado del juego (r_multimon_mode 4), el único que acepta dos monitores. Aún no probado en un rig.",
+"Avec deux écrans le jeu a besoin d'un seul écran sur les deux (AMD Eyefinity accepte deux écrans ; NVIDIA Surround en demande trois). Utilise le mode personnalisé du jeu (r_multimon_mode 4), le seul qui accepte deux écrans. Pas encore testé sur un rig."
+],
+  [
+"With two monitors, enter the side monitor angle directly.",
+"Com dois monitores, escreva diretamente o ângulo do monitor lateral.",
+"Con dos monitores, escribe directamente el ángulo del monitor lateral.",
+"Avec deux écrans, saisissez directement l'angle de l'écran latéral."
+],
+  [
+"Nothing was written: the file changed (probably the game saved it) before the app could write. The files are as they were; press Apply again.",
+"Nada foi escrito: o arquivo mudou (provavelmente o jogo gravou) antes de o programa escrever. Os arquivos estão como estavam; carregue em Aplicar outra vez.",
+"No se escribió nada: el archivo cambió (probablemente el juego lo guardó) antes de que el programa escribiera. Los archivos están como estaban; pulsa Aplicar otra vez.",
+"Rien n'a été écrit : le fichier a changé (probablement enregistré par le jeu) avant l'écriture. Les fichiers sont inchangés ; cliquez à nouveau sur Appliquer."
+],
+  [
+"failed, nothing written",
+"falhou, nada escrito",
+"falló, nada escrito",
+"échec, rien écrit"
+],
+  [
+"interrupted while applying: check and restore if needed",
+"interrompido a aplicar: verifique e restaure se for preciso",
+"interrumpido al aplicar: revisa y restaura si hace falta",
+"interrompu pendant l'application : vérifiez et restaurez si besoin"
+],
+  [
+"restore failed, reverted",
+"restauro falhou, revertido",
+"restauración fallida, revertida",
+"restauration échouée, annulée"
+],
+  [
+"restore failed, restore by hand",
+"restauro falhou, restaure à mão",
+"restauración fallida, restaura a mano",
+"restauration échouée, restaurez à la main"
+],
+  [
+"Eye height outside the plausible range (-1000 to 1000 mm from the screen center).",
+"Altura dos olhos fora do intervalo plausível (-1000 a 1000 mm do centro da tela).",
+"Altura de los ojos fuera del rango plausible (-1000 a 1000 mm del centro de la pantalla).",
+"Hauteur des yeux hors de la plage plausible (-1000 à 1000 mm du centre de l'écran)."
 ]
 ];
 export function makeT(code) {

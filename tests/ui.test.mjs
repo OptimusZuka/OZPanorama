@@ -325,6 +325,33 @@ test("Correção de molduras recomendada pelas caixas e áreas visíveis (rig de
   assert.doesNotMatch(await page.textContent("#bezelAdvice"), /\b39 px\b/, "sem aviso quando o Surround já está certo");
 });
 
+test("ETS2 com dois monitores: principal à direita, janela esquerda no monitor da esquerda", async () => {
+  const { srv, page } = await app();
+  await page.click("#presetZuka"); await page.selectOption("#layout", "2L"); await step2(page, "ets2");
+  const out = await page.textContent("#out");
+  assert.match(out, / monitors: 2\n/); assert.match(out, / name: center\n/); assert.match(out, / name: left\n/); assert.doesNotMatch(out, / name: right\n/);
+  // A interface do jogo fica no principal (à direita): começa depois do monitor da esquerda e da folga.
+  const ui = +/normalized_ui_x: ([\d.]+)/.exec(out)[1]; assert.ok(ui > 0.45 && ui < 0.6, `ui_x ${ui}`);
+  await page.waitForTimeout(400);
+  const pv = srv.requests.filter((r) => r.path === "/api/preview" && r.body.game === "ets2").pop();
+  assert.ok(pv && pv.body.values.width === 1920 * 2 + 39, `largura ${pv && pv.body.values.width}`);
+  assert.equal(await page.isDisabled("#wR"), true);
+});
+
+test("ETS2 com dois monitores: principal à esquerda, janela direita no monitor da direita", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka"); await page.selectOption("#layout", "2R"); await step2(page, "ets2");
+  const out = await page.textContent("#out");
+  assert.match(out, / monitors: 2\n/); assert.match(out, / name: right\n/); assert.doesNotMatch(out, / name: left\n/);
+  assert.match(out, /normalized_ui_x: 0\.000000\n/);
+});
+
+test("Dois monitores: os outros jogos dizem que precisam de três", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka"); await page.selectOption("#layout", "2L"); await step2(page, "iracing");
+  assert.match(await page.innerHTML("#alerts2") + await page.innerHTML("#alerts"), /three monitors|três monitores/);
+});
+
 test("Le Mans Ultimate: vistas ajustadas ao modelo do jogo e enviadas ao servidor", async () => {
   const { srv, page } = await app();
   await page.click("#presetZuka"); await step2(page, "lmu");
@@ -354,6 +381,27 @@ test("Detetar monitores: três monitores iguais são três e ficam colocados (au
   assert.equal(await page.$eval("#wL", (i) => i.value), "598");
   assert.equal(await page.$eval("#wR", (i) => i.value), "598");
   assert.equal(await page.$eval("#gap", (i) => i.value), String(((39 * 598) / 1920).toFixed(1)));
+});
+
+test("Detetar monitores: um 4K ou um super-ultrawide não é Surround (auditoria OZP-03)", async () => {
+  for (const [w, h] of [[3840, 2160], [5120, 1440]]) {
+    const { page } = await app();
+    await page.route("**/api/monitors", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true,
+      screens: [{ w, h, x: 0, y: 0, primary: true }], monitors: [{ id: "m1", name: "Monitor", w_mm: 1190, h_mm: 340, present: true }] }) }));
+    await page.click("#presetClear"); await page.click("#detect"); await page.waitForTimeout(300);
+    const t = await page.textContent("#detOut");
+    assert.doesNotMatch(t, /Surround/, `${w}×${h}`);
+    assert.equal(await page.$eval("#xC", (i) => i.value), "", `${w}×${h}: resoluções não preenchidas à sorte`);
+  }
+});
+
+test("Detetar monitores: dois monitores em Eyefinity escolhem o modo de dois monitores", async () => {
+  const { page } = await app();
+  await page.route("**/api/monitors", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true,
+    screens: [{ w: 3880, h: 1080, x: 0, y: 0, primary: true }], monitors: ["a", "b"].map((x) => ({ id: "m" + x, name: "AOC 27G4", w_mm: 598, h_mm: 336, present: true })) }) }));
+  await page.click("#presetClear"); await page.click("#detect"); await page.waitForTimeout(300);
+  assert.match(await page.textContent("#detOut"), /2 × 1920 \+ 40 px/);
+  assert.equal(await page.$eval("#layout", (s) => s.value), "2L");
 });
 
 test("Ângulo pelas pontas: monitores alinhados dão 0° (auditoria B2)", async () => {

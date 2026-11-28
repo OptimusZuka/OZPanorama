@@ -75,8 +75,9 @@ namespace OZPanorama
         public override string[] Paths()
         {
             if (OverridePath != null) return new[] { OverridePath };
-            foreach (var c in Candidates()) if (File.Exists(c)) return new[] { c };
-            return new[] { Candidates()[0] };
+            // OZP-04: com as instalações Steam e Microsoft Store, usa a que o simulador gravou por último (a que está em uso).
+            var found = Candidates().Where(File.Exists).OrderByDescending(c => File.GetLastWriteTimeUtc(c)).ToList();
+            return new[] { found.Count > 0 ? found[0] : Candidates()[0] };
         }
         public override string[] AllPaths() { return OverridePath != null ? new[] { OverridePath } : Candidates(); }
 
@@ -98,7 +99,7 @@ namespace OZPanorama
         {
             var path = Paths()[0]; var s = snaps[path];
             if (!s.Exists) throw new OzError("missing", "Não encontrei o UserCfg.opt do MSFS 2024. Abra o simulador uma vez e saia pelo menu.", path);
-            double left = Num(v, "rotLeft", 0, 90), right = Num(v, "rotRight", 0, 90);
+            double left = Num(v, "rotLeft", 0, 180), right = Num(v, "rotRight", 0, 180);   // > 90 com "esconder atrás das molduras"
             string leftWin = Str(v, "leftWindow");
             if (leftWin != "0" && leftWin != "1") throw new OzError("input", "Indique qual das janelas extra está à esquerda.");
             int lw = leftWin == "0" ? 0 : 1, rw = 1 - lw;
@@ -125,6 +126,8 @@ namespace OZPanorama
             fp.Rules.Add(Rotation(lw, (-left).ToString("0.000000", CultureInfo.InvariantCulture)));
             fp.Rules.Add(Rotation(rw, right.ToString("0.000000", CultureInfo.InvariantCulture)));
             p.Files.Add(fp);
+            if (OverridePath == null && Candidates().Count(File.Exists) > 1)
+                p.Warnings.Add("Encontrei o MSFS 2024 instalado no Steam e na Microsoft Store. Vou alterar o que foi usado por último (" + (path.Contains("Packages") ? "Microsoft Store" : "Steam") + "). Se joga na outra versão, abra-a uma vez e saia antes de aplicar.");
             return p;
         }
     }
@@ -654,18 +657,22 @@ namespace OZPanorama
             var bk = pv.Backup;
             var res = new ApplyResult { Backup = bk, Changes = pv.Changes };
             var written = new List<string>();
+            bool appliedOk = false; string writing = null;   // ficheiro a meio de ser escrito quando houve a falha
             try
             {
+                // Fica registado antes da primeira escrita: se o programa for interrompido a meio, o backup mostra-o.
+                bk.Status = "a-aplicar"; bk.SaveManifest();
                 foreach (var f in pv.Plan.Files)
                 {
                     // Última confirmação imediatamente antes de substituir.
-                    if (written.Count > 0) Faults.HitAction("between-files");
+                    Faults.HitAction(written.Count > 0 ? "between-files" : "before-first-write");
                     var again = Snapshot.Read(f.Path);
                     if (again.Sha != pv.Snaps[f.Path].Sha) throw new OzError("changed", "O ficheiro " + f.Label + " mudou durante a aplicação.", f.Path);
                     var data = pv.NewBytes[f.Path];
                     if (data.Length == 0 && again.Exists) throw new OzError("verify", "O conteúdo novo ficou vazio; nada foi alterado.", f.Path);
+                    writing = f.Path;
                     SafeIO.AtomicWrite(f.Path, data);
-                    written.Add(f.Path);
+                    written.Add(f.Path); writing = null;
                     Faults.Hit("after-replace");
                     // 3) Verificação: releitura byte a byte e regras.
                     var back = File.ReadAllBytes(f.Path);
@@ -673,13 +680,27 @@ namespace OZPanorama
                     if (Hash.Sha256(back) != Hash.Sha256(data)) throw new OzError("verify", "A releitura do ficheiro " + f.Label + " não confere.", f.Path);
                     var bf = bk.Files.First(x => x.Original == f.Path); bf.ShaApplied = Hash.Sha256(back);
                 }
-                bk.Status = "aplicado"; bk.SaveManifest();
+                appliedOk = true;
+                bk.Status = "aplicado";
                 res.Ok = true; res.Status = "aplicado"; res.Message = "Configuração aplicada e verificada.";
+                // Uma falha só a gravar o registo do backup não desfaz uma aplicação correta e verificada.
+                try { bk.SaveManifest(); } catch (Exception me) { res.Detail.Add("registo do backup não gravado: " + me.Message); AppInfo.Log("aplicar " + g.Id + ": registo do backup não gravado: " + me.Message); }
                 AppInfo.Log("aplicar " + g.Id + " ok backup=" + bk.Id);
                 return res;
             }
             catch (Exception e)
             {
+                if (appliedOk) throw;
+                // OZP-02: nada chegou a ser escrito (ex.: o jogo gravou o ficheiro entre a confirmação e a escrita).
+                // Não há nada a repor; não se pede ao utilizador que restaure, o que apagaria a alteração do outro programa.
+                if (written.Count == 0 && writing == null)
+                {
+                    bk.Status = "falhou-nada-escrito"; try { bk.SaveManifest(); } catch { }
+                    res.Detail.Add(e.Message); res.Status = "falhou-nada-escrito";
+                    res.Message = "Nada foi escrito (" + (e is OzError ? e.Message : "erro antes de escrever") + "). Os ficheiros ficaram como estavam; volte a carregar em Aplicar.";
+                    AppInfo.Log("aplicar " + g.Id + " FALHOU antes de escrever: " + e.Message + (e is OzError ? " | " + ((OzError)e).Detail : ""));
+                    return res;
+                }
                 // 4) Recuperação automática: repõe os ficheiros a partir do backup que acabámos de validar.
                 res.Detail.Add(e.Message);
                 var failed = new List<string>();
@@ -759,10 +780,13 @@ namespace OZPanorama
 
             var safety = BackupStore.Create(g.Id, g.Name, "antes-de-restaurar " + b.Id, todo.Select(f => Snapshot.Read(f.Original)).ToList());
             var r = new RestoreResult { SafetyBackup = safety };
+            var done = new List<BackupFile>();
             try
             {
                 foreach (var f in todo)
                 {
+                    if (done.Count > 0) Faults.HitAction("restore-between-files");
+                    done.Add(f);
                     if (f.Existed)
                     {
                         var data = File.ReadAllBytes(f.Copy);
@@ -784,8 +808,32 @@ namespace OZPanorama
             catch (Exception e)
             {
                 r.Ok = false; r.Detail.Add(e.Message);
-                r.Message = "O restauro não terminou. O estado anterior está no backup " + safety.Id + "; pode restaurá-lo a partir da lista.";
-                AppInfo.Log("restaurar " + b.Id + " FALHOU: " + e.Message);
+                // Reposição automática do estado de antes do restauro (backup de segurança acabado de validar).
+                var failed = new List<string>();
+                foreach (var f in done)
+                {
+                    try
+                    {
+                        var sf = safety.Files.First(x => string.Equals(x.Original, f.Original, StringComparison.OrdinalIgnoreCase));
+                        var cur = Snapshot.Read(f.Original);
+                        if (sf.Existed ? (cur.Exists && cur.Sha == sf.ShaOriginal) : !cur.Exists) continue;
+                        if (sf.Existed)
+                        {
+                            var data = File.ReadAllBytes(sf.Copy);
+                            if (Hash.Sha256(data) != sf.ShaOriginal) throw new IOException("cópia de segurança danificada");
+                            SafeIO.AtomicWrite(f.Original, data);
+                            if (Hash.Sha256(File.ReadAllBytes(f.Original)) != sf.ShaOriginal) throw new IOException("reposição não confere");
+                        }
+                        else if (File.Exists(f.Original)) File.Delete(f.Original);
+                    }
+                    catch (Exception re) { failed.Add(System.IO.Path.GetFileName(f.Original) + ": " + re.Message); }
+                }
+                r.Detail.AddRange(failed);
+                safety.Status = failed.Count == 0 ? "restauro-revertido" : "restauro-incompleto"; try { safety.SaveManifest(); } catch { }
+                r.Message = failed.Count == 0
+                    ? "O restauro não terminou. Os ficheiros voltaram automaticamente ao estado de antes do restauro (verificado)."
+                    : "O restauro não terminou e não foi possível voltar atrás em tudo. O estado anterior está no backup " + safety.Id + "; pode restaurá-lo a partir da lista.";
+                AppInfo.Log("restaurar " + b.Id + " FALHOU: " + e.Message + (failed.Count == 0 ? " (revertido)" : " (reversão incompleta)"));
             }
             return r;
         }

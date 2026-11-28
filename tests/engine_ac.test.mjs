@@ -58,3 +58,16 @@ test("LMU: ângulos diferentes vão para LeftView e RightView", () => {
   const p = E.lmuPlan(E.buildRow({ name: "center", res_px: [1920, 1080], width_mm: 597.7, height_mm: 336.2 }, [S("left", 40)], [S("right", 60)], 710));
   assert.match(p.left, /, 40\.000, /); assert.match(p.right, /, 60\.000, /); assert.equal(p.asymmetric, true); assert.ok(p.errDeg < 0.2);
 });
+
+// ETS2/ATS com dois monitores: o .sii só tem os dois e cada vista reproduz o frustum exato do seu monitor.
+test("ETS2 dois monitores: geometria exata e interface no principal", () => {
+  const C = { name: "center", res_px: [1920, 1080], width_mm: 597.7, height_mm: 336.2 };
+  const S = (n) => ({ name: n, res_px: [1920, 1080], width_mm: 597.7, height_mm: 336.2, hinge_deg: 50, gap_mm: 15, desktop_gap_px: 48 });
+  for (const [l, r] of [[[S("left")], []], [[], [S("right")]]]) {
+    const rig = E.buildRow(C, l, r, 700), p = E.scsPlan(rig), err = E.compareMethods(rig);
+    assert.equal(p.monitors.length, 2); assert.equal(p.width, 1920 * 2 + 48);
+    for (const m of rig.monitors) assert.ok(err[m.name].exata < 0.01, `${m.name} ${err[m.name].exata}`);
+    const main = p.monitors.find((m) => m.name === "center"); assert.ok(Math.abs(p.ui[0] - main.normalized[0]) < 1e-9);
+    assert.ok(Math.abs(main.heading) < 1e-9, "a vista principal olha em frente");
+  }
+});

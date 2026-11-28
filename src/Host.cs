@@ -120,7 +120,7 @@ namespace OZPanorama
 
         public static List<object> Read()
         {
-            bool spanning = Displays.Screens().Any(x => x[0] >= 3600);
+            bool spanning = Displays.Screens().Any(x => x[0] >= 3600 && x[1] > 0 && (double)x[0] / x[1] >= 2.5);
             // 1) WMI: os monitores que o Windows vê agora (com o Surround, só o ecrã virtual e os que estão fora dele).
             var live = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
@@ -407,7 +407,16 @@ namespace OZPanorama
                 if (c.Request.ContentLength64 > 4 * 1024 * 1024) { Send(c, 413, new Dictionary<string, object> { { "ok", false }, { "error", "Pedido demasiado grande." } }); return; }
                 try
                 {
-                    using (var r = new StreamReader(c.Request.InputStream, Encoding.UTF8)) { var t = r.ReadToEnd(); body = string.IsNullOrWhiteSpace(t) ? new Dictionary<string, object>() : json.Deserialize<Dictionary<string, object>>(t); }
+                    using (var r = new StreamReader(c.Request.InputStream, Encoding.UTF8))
+                    {
+                        // Lê em blocos com limite: um corpo sem Content-Length (chunked) também não passa de 4 MB.
+                        var sb = new StringBuilder(); var buf = new char[8192]; int k;
+                        while ((k = r.Read(buf, 0, buf.Length)) > 0)
+                        {
+                            sb.Append(buf, 0, k);
+                            if (sb.Length > 4 * 1024 * 1024) { Send(c, 413, new Dictionary<string, object> { { "ok", false }, { "error", "Pedido demasiado grande." } }); return; }
+                        }
+                        var t = sb.ToString(); body = string.IsNullOrWhiteSpace(t) ? new Dictionary<string, object>() : json.Deserialize<Dictionary<string, object>>(t); }
                 }
                 catch (Exception) { Send(c, 400, new Dictionary<string, object> { { "ok", false }, { "error", "Pedido inválido." } }); return; }
                 if (body == null) body = new Dictionary<string, object>();

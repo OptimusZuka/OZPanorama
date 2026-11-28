@@ -1,14 +1,20 @@
-**OZPanorama {VERSION}** - Assetto Corsa, Le Mans Ultimate (experimental) and the recommended NVIDIA bezel correction.
+**OZPanorama {VERSION}** - two monitors in ETS2/ATS and fixes from the technical audit.
 
 ### New
-- **Assetto Corsa** (tested with Content Manager): writes `triple_screen.ini` with the position of each screen and turns on `MODE=TRIPLE` in `video.ini`, the same setting Content Manager uses. With Surround bezel correction, each third of the image includes the hidden pixels, so the image stays aligned across the bezels.
-- **Le Mans Ultimate** (experimental): turns on the three views (Multiview) and writes `ViewParams`, `LeftView` and `RightView` in `Config_DX11.ini`, fitted to the game's own screen model so that every visible pixel points in the real direction. Finds the game in your Steam libraries.
-- **Recommended NVIDIA bezel correction**: from the case and visible widths of your monitors, the app shows how many pixels the Surround should hide per join, and warns you when your Surround hides a different amount. The angle and the eye distance do not change this value.
+- **Two monitors in Euro Truck Simulator 2 and American Truck Simulator** (experimental): choose which monitor is the main one. With the main on the right, the left monitor shows the left window; with the main on the left, the right monitor shows the right window. Uses the game's custom mode (`r_multimon_mode "4"`), the only one that accepts two monitors.
 
-### Changed
-- `.ini` settings can now be changed only inside their own section (for example `MODE` in `[CAMERA]`), so a key with the same name in another section is never touched.
+### Fixed
+- **MSFS 2024**: with "Hide the image behind the bezels" on, the calculated values (above 90) were refused and nothing could be applied.
+- **MSFS 2024 installed on Steam and on the Microsoft Store**: the app now changes the one used last and says which one.
+- **Change detected before writing**: if the game saved its file between your confirmation and the write, the app now says that nothing was written. Before, it suggested restoring a backup, which would undo the game's change.
+- **Restore that fails half-way** (two files): the files already restored go back automatically to how they were before the restore.
+- **Interrupted apply**: the backup is marked before the first write, so an interruption (power cut, app closed) shows in "Backups and restore".
+- **A failure only saving the backup record** no longer undoes a correct, verified apply.
+- **Detect monitors**: a single 4K or super-ultrawide monitor is no longer taken for NVIDIA Surround. Two monitors with AMD Eyefinity are detected and choose the two-monitor mode.
+- **Symbolic links**: a configuration file that is a link is refused instead of being replaced by a normal file.
+- Eye height above the screen center now has limits, and request bodies sent without a size are limited too.
 
-Before using Assetto Corsa or Le Mans Ultimate, read the [known limitations](https://github.com/OptimusZuka/OZPanorama/blob/main/docs/LIMITATIONS.md).
+Before using two monitors, Assetto Corsa or Le Mans Ultimate, read the [known limitations](https://github.com/OptimusZuka/OZPanorama/blob/main/docs/LIMITATIONS.md).
 
 ### Downloads
 - **OZPanorama_Setup_{VERSION}.exe** - installer (English, Português, Español, Français), for your user only, no administrator rights. Uninstalling never deletes the backups in `Documents\OZPanorama\backups`.
