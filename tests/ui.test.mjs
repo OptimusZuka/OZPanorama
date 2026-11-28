@@ -352,6 +352,14 @@ test("Dois monitores: os outros jogos dizem que precisam de três", async () => 
   assert.match(await page.innerHTML("#alerts2") + await page.innerHTML("#alerts"), /three monitors|três monitores/);
 });
 
+test("Dois monitores: escolher o layout com outro jogo selecionado passa para o ETS2", async () => {
+  const { page } = await app();
+  await page.click("#presetZuka"); await step2(page, "lmu");
+  await page.click('#nav button[data-step="1"]'); await page.selectOption("#layout", "2R"); await page.waitForTimeout(300);
+  assert.equal(await page.getAttribute('#games button[data-k="ets2"]', "aria-pressed"), "true");
+  assert.doesNotMatch(await page.innerHTML("#alerts"), /three monitors|três monitores/);
+});
+
 test("Le Mans Ultimate: vistas ajustadas ao modelo do jogo e enviadas ao servidor", async () => {
   const { srv, page } = await app();
   await page.click("#presetZuka"); await step2(page, "lmu");
