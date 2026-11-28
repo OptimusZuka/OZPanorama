@@ -627,7 +627,7 @@ function renderInner() {
     values = { ViewParams: p.view, LeftView: p.left, RightView: p.right, width: w, height: h };
     extra = `<div class="alert info">${esc(T("The width and gap are not the physical ones: with the Surround each third of the image includes pixels hidden behind the bezels, so they are fitted so that every visible pixel points in the real direction."))}</div>`;
     steps = [T("Turns on the three views (SubViews=2, the Multiview option) with separate left and right views."), T("Writes the size, eye distance and angle of the three views, fitted to your rig."), F("Checks that the game resolution matches the Surround area ({0}×{1}) and warns you if it doesn't.", w, h)];
-    limit = T("Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Experimental: not yet validated on a rig.");
+    limit = T("Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Tested on the author's rig. Seat Pitch different from 0 tilts the side screens.");
   } else if (game === "ac") {
     // Assetto Corsa: triple_screen.ini (pontos de cada terço da imagem) + MODE=TRIPLE no video.ini.
     const p = E.acPlan(rig), w = Math.round(p.width), h = Math.round(p.height);

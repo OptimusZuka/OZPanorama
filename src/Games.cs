@@ -416,7 +416,7 @@ namespace OZPanorama
     {
         public Func<string> InstallProvider = FindInstall;
         public Func<List<int[]>> ScreensProvider = Displays.Screens;
-        public LeMansUltimate() { Id = "lmu"; Name = "Le Mans Ultimate"; Status = "experimental"; Processes = new[] { "Le Mans Ultimate", "LMU" }; }
+        public LeMansUltimate() { Id = "lmu"; Name = "Le Mans Ultimate"; Status = "testado"; Processes = new[] { "Le Mans Ultimate", "LMU" }; }
 
         /// <summary>Pastas de bibliotecas do Steam: SteamPath do registo + libraryfolders.vdf. Só leitura.</summary>
         public static List<string> SteamLibraries()

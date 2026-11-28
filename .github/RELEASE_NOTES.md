@@ -5,6 +5,8 @@
 
 - **Game artwork**: each simulator now has its own picture in the list, in the app's black and yellow style with a color strip per game.
 
+- **Le Mans Ultimate is now "Tested"**: validated on the author's rig (three views, alignment and Surround resolution).
+
 ### Fixed
 - **MSFS 2024**: with "Hide the image behind the bezels" on, the calculated values (above 90) were refused and nothing could be applied.
 - **MSFS 2024 installed on Steam and on the Microsoft Store**: the app now changes the one used last and says which one.
@@ -16,7 +18,7 @@
 - **Symbolic links**: a configuration file that is a link is refused instead of being replaced by a normal file.
 - Eye height above the screen center now has limits, and request bodies sent without a size are limited too.
 
-Before using two monitors, Assetto Corsa or Le Mans Ultimate, read the [known limitations](https://github.com/OptimusZuka/OZPanorama/blob/main/docs/LIMITATIONS.md).
+Before using two monitors, read the [known limitations](https://github.com/OptimusZuka/OZPanorama/blob/main/docs/LIMITATIONS.md).
 
 ### Downloads
 - **OZPanorama_Setup_{VERSION}.exe** - installer (English, Português, Español, Français), for your user only, no administrator rights. Uninstalling never deletes the backups in `Documents\OZPanorama\backups`.

@@ -51,7 +51,7 @@ and **writes the right values into the game's files**, with a backup and a check
 | iRacing | Tested | 7 settings in `rendererDX11Monitor.ini` |
 | RaceRoom Racing Experience | Tested | Triple screen settings in `graphics_options.xml` (distance, screen sizes, bezels, angles) |
 | Assetto Corsa | Tested (with Content Manager) | `triple_screen.ini` (position of each screen) and `MODE=TRIPLE` in `video.ini` |
-| Le Mans Ultimate | Experimental | The three views (`SubViews=2`) and `ViewParams` / `LeftView` / `RightView` in `Config_DX11.ini` |
+| Le Mans Ultimate | Tested | The three views (`SubViews=2`) and `ViewParams` / `LeftView` / `RightView` in `Config_DX11.ini` |
 
 "Tested" means tested by the author on his own rig (three 27" monitors). Other rigs may behave differently:
 use **Report a problem** in the app.

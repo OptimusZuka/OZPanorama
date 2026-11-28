@@ -248,7 +248,7 @@ namespace OZPanorama.Tests
                 Throws("format", () => Ops.MakePreview("raceroom", vals), "B/RaceRoom: ficheiro sem as chaves recusado");
             }
 
-            // ---------- Le Mans Ultimate (experimental) ----------
+            // ---------- Le Mans Ultimate ----------
             {
                 var inst = Fresh("lmu_install"); var ud = Path.Combine(inst, "UserData"); Directory.CreateDirectory(ud);
                 var cfg = Path.Combine(ud, "Config_DX11.ini");
@@ -275,7 +275,7 @@ namespace OZPanorama.Tests
                 Throws("missing", () => Ops.MakePreview("lmu", vals), "B/LMU: sem Config_DX11.ini (jogo nunca aberto) recusado");
             }
 
-            // ---------- Assetto Corsa (experimental) ----------
+            // ---------- Assetto Corsa ----------
             {
                 var docs = Fresh("docs_ac"); var dir = Path.Combine(docs, "Assetto Corsa", "cfg"); Directory.CreateDirectory(dir);
                 var video = Path.Combine(dir, "video.ini"); var tri = Path.Combine(dir, "triple_screen.ini");

@@ -14,8 +14,8 @@ export function startServer(appDir, { appMode = true } = {}) {
     { id: "msfs", name: "Microsoft Flight Simulator 2024", status: state.status.msfs || "testado", canApply: (state.status.msfs || "testado") === "testado", running: state.running.msfs, files: [{ nome: "UserCfg.opt", existe: true }] },
     { id: "ets2", name: "Euro Truck Simulator 2", status: "testado", canApply: true, running: false, files: [{ nome: "multimon_config.sii", existe: false }, { nome: "config.cfg", existe: true }] },
     { id: "ats", name: "American Truck Simulator", status: "testado", canApply: true, running: false, files: [{ nome: "multimon_config.sii", existe: true }, { nome: "config.cfg", existe: true }] },
-    { id: "lmu", name: "Le Mans Ultimate", status: "experimental", canApply: true, running: false, files: [{ nome: "Config_DX11.ini", existe: true }] },
-    { id: "ac", name: "Assetto Corsa", status: "experimental", canApply: true, running: false, files: [{ nome: "video.ini", existe: true }, { nome: "triple_screen.ini", existe: true }] },
+    { id: "lmu", name: "Le Mans Ultimate", status: "testado", canApply: true, running: false, files: [{ nome: "Config_DX11.ini", existe: true }] },
+    { id: "ac", name: "Assetto Corsa", status: "testado", canApply: true, running: false, files: [{ nome: "video.ini", existe: true }, { nome: "triple_screen.ini", existe: true }] },
     { id: "iracing", name: "iRacing", status: state.status.iracing || "testado", canApply: (state.status.iracing || "testado") === "testado", running: false, files: [{ nome: "rendererDX11Monitor.ini", existe: true }] },
   ];
   const changesFor = (game, v) => {

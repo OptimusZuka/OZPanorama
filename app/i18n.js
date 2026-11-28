@@ -1773,10 +1773,10 @@ export const ROWS = [
 "Écrit triple_screen.ini avec la position de chaque écran vue de dessus, en mètres, y compris les pixels masqués par la correction des bordures."
 ],
   [
-"Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Experimental: not yet validated on a rig.",
-"Precisa do NVIDIA Surround (ou AMD Eyefinity) e de três telas com a mesma resolução. Experimental: ainda não validado num rig.",
-"Necesita NVIDIA Surround (o AMD Eyefinity) y tres pantallas con la misma resolución. Experimental: aún no validado en un rig.",
-"Nécessite NVIDIA Surround (ou AMD Eyefinity) et trois écrans de même résolution. Expérimental : pas encore validé sur un rig."
+"Needs NVIDIA Surround (or AMD Eyefinity) and three screens with the same resolution. Tested on the author's rig. Seat Pitch different from 0 tilts the side screens.",
+"Precisa do NVIDIA Surround (ou AMD Eyefinity) e de três telas com a mesma resolução. Testado no rig do autor. Um Seat Pitch diferente de 0 inclina as telas laterais.",
+"Necesita NVIDIA Surround (o AMD Eyefinity) y tres pantallas con la misma resolución. Probado en el rig del autor. Un Seat Pitch distinto de 0 inclina las pantallas laterales.",
+"Nécessite NVIDIA Surround (ou AMD Eyefinity) et trois écrans de même résolution. Testé sur le rig de l'auteur. Un Seat Pitch différent de 0 incline les écrans latéraux."
 ],
   [
 "Needs Surround on · Multiview",
