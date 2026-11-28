@@ -389,7 +389,7 @@ function buildGames() {
     b.type = "button"; b.dataset.k = g.k; b.setAttribute("aria-pressed", String(g.k === game));
     b.style.setProperty("--gc", g.color);
     b.innerHTML = `<span class="gi"><img src="assets/jogos/${g.k}.jpg"${g.pos ? ` style="object-position:${g.pos}"` : ""} alt="" loading="lazy" decoding="async" onerror="this.parentNode.hidden=true"></span><span class="gb"><span class="badge ${cls}">${esc(T(label))}</span><span class="gt">${esc(g.name)}</span>` +
-      (st ? `<span class="gs ${stc}">${esc(st)}</span>` : "") + `<span class="gsub">${esc(T(g.sub))}</span></span>`;
+      (st ? `<span class="gs ${stc}">${esc(st)}</span>` : "") + `<span class="gsub">${esc(T(g.k === "msfs" && layoutOf() !== "3" ? "Without Surround · 2 windows" : g.sub))}</span></span>`;
     b.addEventListener("click", () => { game = g.k; msfsLeft = null; buildGames(); render(); schedulePreview(); });
     box.appendChild(b);
   }
@@ -712,7 +712,7 @@ $("presetClear").addEventListener("click", () => applyPreset("vazio"));
 const FIELDS = Object.keys(EMPTY);
 function saveRig() { try { localStorage.setItem("ozp.rig", JSON.stringify({ v: Object.fromEntries(FIELDS.map((k) => [k, $(k).value])), px: $("pxGap").checked, curvC: $("curvC").checked, curvS: $("curvS").checked })); } catch {} }
 function loadRig() { try { const r = JSON.parse(localStorage.getItem("ozp.rig")); if (!r) return false; for (const k of FIELDS) $(k).value = r.v[k] ?? ""; $("pxGap").checked = !!r.px; $("curvC").checked = !!r.curvC; $("curvS").checked = !!r.curvS; presetNote = "Your measurements, saved on this computer."; return true; } catch { return false; } }
-$("layout").addEventListener("change", twoMonitorGame);
+$("layout").addEventListener("change", () => { twoMonitorGame(); buildGames(); });
 $("form").addEventListener("input", () => { $("presetZuka").setAttribute("aria-pressed", "false"); presetNote = "Measurements entered by you."; $("exampleNote").textContent = T(presetNote); saveRig(); render(); });
 $("form").addEventListener("submit", (e) => e.preventDefault());
 

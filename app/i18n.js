@@ -1419,6 +1419,12 @@ export const ROWS = [
 "Sans Surround · 3 fenêtres"
 ],
   [
+"Without Surround · 2 windows",
+"Sem Surround · 2 janelas",
+"Sin Surround · 2 ventanas",
+"Sans Surround · 2 fenêtres"
+],
+  [
 "New rig: enter your measurements or use \"Detect monitors\". No value is assumed.",
 "Rig novo: insira suas medidas ou use \"Detectar monitores\". Nenhum valor é assumido.",
 "Rig nuevo: introduce tus medidas o usa \"Detectar monitores\". No se asume ningún valor.",

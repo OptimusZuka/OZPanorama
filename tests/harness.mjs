@@ -19,6 +19,7 @@ export function startServer(appDir, { appMode = true } = {}) {
     { id: "iracing", name: "iRacing", status: state.status.iracing || "testado", canApply: (state.status.iracing || "testado") === "testado", running: false, files: [{ nome: "rendererDX11Monitor.ini", existe: true }] },
   ];
   const changesFor = (game, v) => {
+    if (game === "msfs" && v.windows === "1") return [["WindowCustom0.CameraDegRotationAdd", (v.side === "left" ? -v.rotLeft : +v.rotRight).toFixed(6)]].map(([k, n]) => ({ ficheiro: "UserCfg.opt", chave: k, atual: state.cur[k], novo: n, muda: state.cur[k] !== n }));
     if (game === "msfs") {
       const lw = v.leftWindow === "1" ? 1 : 0, rw = 1 - lw;
       return [[`WindowCustom${lw}.CameraDegRotationAdd`, (-v.rotLeft).toFixed(6)], [`WindowCustom${rw}.CameraDegRotationAdd`, (+v.rotRight).toFixed(6)]]
