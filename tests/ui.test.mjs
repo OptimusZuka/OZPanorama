@@ -395,7 +395,7 @@ test("Detetar monitores: um 4K ou um super-ultrawide não é Surround (auditoria
   }
 });
 
-test("Detetar monitores: dois monitores em Eyefinity escolhem o modo de dois monitores", async () => {
+test("Detetar monitores: dois monitores em Surround ou Eyefinity escolhem o modo de dois monitores", async () => {
   const { page } = await app();
   await page.route("**/api/monitors", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true,
     screens: [{ w: 3880, h: 1080, x: 0, y: 0, primary: true }], monitors: ["a", "b"].map((x) => ({ id: "m" + x, name: "AOC 27G4", w_mm: 598, h_mm: 336, present: true })) }) }));

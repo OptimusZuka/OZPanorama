@@ -1887,10 +1887,10 @@ export const ROWS = [
 "Deux écrans : la vue avant et les menus du jeu restent sur l'écran principal (gauche) et la fenêtre droite va sur l'écran de droite."
 ],
   [
-"With two monitors the game needs one screen across both (AMD Eyefinity supports two monitors; NVIDIA Surround needs three). Uses the custom mode of the game (r_multimon_mode 4), the only one that accepts two monitors. Not yet tested on a rig.",
-"Com dois monitores o jogo precisa de uma tela única sobre os dois (o AMD Eyefinity aceita dois monitores; o NVIDIA Surround precisa de três). Usa o modo personalizado do jogo (r_multimon_mode 4), o único que aceita dois monitores. Ainda não testado num rig.",
-"Con dos monitores el juego necesita una pantalla única sobre los dos (AMD Eyefinity admite dos monitores; NVIDIA Surround necesita tres). Usa el modo personalizado del juego (r_multimon_mode 4), el único que acepta dos monitores. Aún no probado en un rig.",
-"Avec deux écrans le jeu a besoin d'un seul écran sur les deux (AMD Eyefinity accepte deux écrans ; NVIDIA Surround en demande trois). Utilise le mode personnalisé du jeu (r_multimon_mode 4), le seul qui accepte deux écrans. Pas encore testé sur un rig."
+"With two monitors the game needs one screen across both (NVIDIA Surround or AMD Eyefinity with the two monitors). Uses the custom mode of the game (r_multimon_mode 4), the only one that accepts two monitors. Not yet tested on a rig.",
+"Com dois monitores o jogo precisa de uma tela única sobre os dois (NVIDIA Surround ou AMD Eyefinity com os dois monitores). Usa o modo personalizado do jogo (r_multimon_mode 4), o único que aceita dois monitores. Ainda não testado num rig.",
+"Con dos monitores el juego necesita una pantalla única sobre los dos (NVIDIA Surround o AMD Eyefinity con los dos monitores). Usa el modo personalizado del juego (r_multimon_mode 4), el único que acepta dos monitores. Aún no probado en un rig.",
+"Avec deux écrans le jeu a besoin d'un seul écran sur les deux (NVIDIA Surround ou AMD Eyefinity avec les deux écrans). Utilise le mode personnalisé du jeu (r_multimon_mode 4), le seul qui accepte deux écrans. Pas encore testé sur un rig."
 ],
   [
 "With two monitors, enter the side monitor angle directly.",

@@ -594,7 +594,7 @@ function renderInner() {
     limit = T("Needs NVIDIA Surround (or AMD Eyefinity) turned on, with bezel correction if you use it.");
     if (i.layout !== "3") {
       extra = `<div class="alert info">${esc(F(i.layout === "2L" ? "Two monitors: the front view and the game menus stay on the main monitor (right) and the left window goes on the left monitor." : "Two monitors: the front view and the game menus stay on the main monitor (left) and the right window goes on the right monitor."))}</div>`;
-      limit = T("With two monitors the game needs one screen across both (AMD Eyefinity supports two monitors; NVIDIA Surround needs three). Uses the custom mode of the game (r_multimon_mode 4), the only one that accepts two monitors. Not yet tested on a rig.");
+      limit = T("With two monitors the game needs one screen across both (NVIDIA Surround or AMD Eyefinity with the two monitors). Uses the custom mode of the game (r_multimon_mode 4), the only one that accepts two monitors. Not yet tested on a rig.");
     }
   } else if (game === "iracing") {
     const p = E.iracingValues(rig);

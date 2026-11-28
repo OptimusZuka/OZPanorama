@@ -14,7 +14,7 @@
 - **Restore that fails half-way** (two files): the files already restored go back automatically to how they were before the restore.
 - **Interrupted apply**: the backup is marked before the first write, so an interruption (power cut, app closed) shows in "Backups and restore".
 - **A failure only saving the backup record** no longer undoes a correct, verified apply.
-- **Detect monitors**: a single 4K or super-ultrawide monitor is no longer taken for NVIDIA Surround. Two monitors with AMD Eyefinity are detected and choose the two-monitor mode.
+- **Detect monitors**: a single 4K or super-ultrawide monitor is no longer taken for NVIDIA Surround. Two monitors in NVIDIA Surround or AMD Eyefinity are detected and choose the two-monitor mode.
 - **Symbolic links**: a configuration file that is a link is refused instead of being replaced by a normal file.
 - Eye height above the screen center now has limits, and request bodies sent without a size are limited too.
 
