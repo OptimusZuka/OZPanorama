@@ -118,7 +118,7 @@ namespace OZPanorama.Tests
                 var f2 = Path.Combine(d, "sem.opt"); File.WriteAllText(f2, "Version 52\r\n{Graphics\r\n\tMonitor 1\r\n}\r\n"); Msfs(f2);
                 Throws("msfs-windows", () => Ops.MakePreview("msfs", MsfsValues(30, 30, "0")), "B/MSFS sem janelas extra recusado");
                 var f3 = Path.Combine(d, "x.opt"); File.WriteAllText(f3, MsfsSample("\r\n")); Msfs(f3);
-                Throws("input", () => Ops.MakePreview("msfs", MsfsValues(120, 30, "0")), "B/rotação fora do intervalo recusada");
+                Throws("input", () => Ops.MakePreview("msfs", MsfsValues(181, 30, "0")), "B/rotação fora do intervalo recusada");
                 Throws("input", () => Ops.MakePreview("msfs", MsfsValues(30, 30, "2")), "B/janela esquerda inválida recusada");
                 var pv = Ops.MakePreview("msfs", MsfsValues(30, 30, "0"));
                 Throws("confirm", () => Ops.Apply(pv.Id, false), "B/aplicar sem confirmação recusado");

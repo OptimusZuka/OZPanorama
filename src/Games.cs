@@ -672,10 +672,15 @@ namespace OZPanorama
             var res = new ApplyResult { Backup = bk, Changes = pv.Changes };
             var written = new List<string>();
             bool appliedOk = false; string writing = null;   // ficheiro a meio de ser escrito quando houve a falha
+            // Fica registado antes da primeira escrita: se o programa for interrompido a meio, o backup mostra-o.
+            // É só um marcador: se não gravar, a aplicação continua (o backup já foi verificado).
+            bk.Status = "a-aplicar";
+            // As falhas injetadas dos testes visam a escrita do ficheiro do jogo, não este marcador.
+            var fault = Faults.Active; Faults.Active = null;
+            try { bk.SaveManifest(); } catch (Exception me) { AppInfo.Log("aplicar " + g.Id + ": marcador a-aplicar não gravado: " + me.Message); }
+            finally { Faults.Active = fault; }
             try
             {
-                // Fica registado antes da primeira escrita: se o programa for interrompido a meio, o backup mostra-o.
-                bk.Status = "a-aplicar"; bk.SaveManifest();
                 foreach (var f in pv.Plan.Files)
                 {
                     // Última confirmação imediatamente antes de substituir.
