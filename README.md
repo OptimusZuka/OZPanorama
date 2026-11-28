@@ -45,7 +45,7 @@ and **writes the right values into the game's files**, with a backup and a check
 
 | Simulator | Status | What the app writes |
 |---|---|---|
-| Microsoft Flight Simulator 2024 | Tested | Only the rotation of the two extra windows that already exist in `UserCfg.opt` |
+| Microsoft Flight Simulator 2024 | Tested (three monitors); two monitors experimental | Only the rotation of the extra windows that already exist in `UserCfg.opt` (two, or one with two monitors) |
 | Euro Truck Simulator 2 | Tested (three monitors); two monitors experimental | `multimon_config.sii` and `r_multimon_mode "4"` in `config.cfg` |
 | American Truck Simulator | Tested | Same as ETS2 |
 | iRacing | Tested | 7 settings in `rendererDX11Monitor.ini` |

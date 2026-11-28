@@ -1863,16 +1863,34 @@ export const ROWS = [
 "Deux écrans : principal à gauche, fenêtre latérale sur l'écran de droite"
 ],
   [
-"With two monitors, the main monitor uses the Center column and the other monitor uses its own side column. Only Euro Truck Simulator 2 and American Truck Simulator support two monitors.",
-"Com dois monitores, o principal usa a coluna Centro e o outro usa a coluna do seu lado. Só o Euro Truck Simulator 2 e o American Truck Simulator aceitam dois monitores.",
-"Con dos monitores, el principal usa la columna Centro y el otro usa la columna de su lado. Solo Euro Truck Simulator 2 y American Truck Simulator admiten dos monitores.",
-"Avec deux écrans, le principal utilise la colonne Centre et l'autre la colonne de son côté. Seuls Euro Truck Simulator 2 et American Truck Simulator acceptent deux écrans."
+"With two monitors, the main monitor uses the Center column and the other monitor uses its own side column. Only Euro Truck Simulator 2, American Truck Simulator and MSFS 2024 support two monitors.",
+"Com dois monitores, o principal usa a coluna Centro e o outro usa a coluna do seu lado. Só o Euro Truck Simulator 2, o American Truck Simulator e o MSFS 2024 aceitam dois monitores.",
+"Con dos monitores, el principal usa la columna Centro y el otro usa la columna de su lado. Solo Euro Truck Simulator 2, American Truck Simulator y MSFS 2024 admiten dos monitores.",
+"Avec deux écrans, le principal utilise la colonne Centre et l'autre la colonne de son côté. Seuls Euro Truck Simulator 2, American Truck Simulator et MSFS 2024 acceptent deux écrans."
 ],
   [
-"This simulator needs three monitors. With two monitors, only Euro Truck Simulator 2 and American Truck Simulator are supported.",
-"Este simulador precisa de três monitores. Com dois monitores, só o Euro Truck Simulator 2 e o American Truck Simulator são suportados.",
-"Este simulador necesita tres monitores. Con dos monitores, solo se admiten Euro Truck Simulator 2 y American Truck Simulator.",
-"Ce simulateur nécessite trois écrans. Avec deux écrans, seuls Euro Truck Simulator 2 et American Truck Simulator sont pris en charge."
+"This simulator needs three monitors. With two monitors, only Euro Truck Simulator 2, American Truck Simulator and MSFS 2024 are supported.",
+"Este simulador precisa de três monitores. Com dois monitores, só o Euro Truck Simulator 2, o American Truck Simulator e o MSFS 2024 são suportados.",
+"Este simulador necesita tres monitores. Con dos monitores, solo se admiten Euro Truck Simulator 2, American Truck Simulator y MSFS 2024.",
+"Ce simulateur nécessite trois écrans. Avec deux écrans, seuls Euro Truck Simulator 2, American Truck Simulator et MSFS 2024 sont pris en charge."
+],
+  [
+"Two borderless full-screen windows, one per monitor. FOV used: {0}° horizontal = {1}° vertical ({2} rad in the developer mode \"Fov\").",
+"Duas janelas em tela cheia sem bordas, uma por monitor. FOV usado: {0}° horizontal = {1}° vertical ({2} rad no \"Fov\" do modo desenvolvedor).",
+"Dos ventanas a pantalla completa sin bordes, una por monitor. FOV usado: {0}° horizontal = {1}° vertical ({2} rad en el \"Fov\" del modo desarrollador).",
+"Deux fenêtres plein écran sans bordure, une par écran. FOV utilisé : {0}° horizontal = {1}° vertical ({2} rad dans le \"Fov\" du mode développeur)."
+],
+  [
+"Writes only the rotation of the extra window that already exists ({0}), on the left monitor.",
+"Escreve só a rotação da janela extra que já existe ({0}), no monitor da esquerda.",
+"Escribe solo la rotación de la ventana extra que ya existe ({0}), en el monitor de la izquierda.",
+"Écrit seulement la rotation de la fenêtre supplémentaire qui existe déjà ({0}), sur l'écran de gauche."
+],
+  [
+"Writes only the rotation of the extra window that already exists ({0}), on the right monitor.",
+"Escreve só a rotação da janela extra que já existe ({0}), no monitor da direita.",
+"Escribe solo la rotación de la ventana extra que ya existe ({0}), en el monitor de la derecha.",
+"Écrit seulement la rotation de la fenêtre supplémentaire qui existe déjà ({0}), sur l'écran de droite."
 ],
   [
 "Two monitors: the front view and the game menus stay on the main monitor (right) and the left window goes on the left monitor.",

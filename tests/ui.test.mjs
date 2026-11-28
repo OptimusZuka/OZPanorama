@@ -360,6 +360,28 @@ test("Dois monitores: escolher o layout com outro jogo selecionado passa para o 
   assert.doesNotMatch(await page.innerHTML("#alerts"), /three monitors|três monitores/);
 });
 
+test("Dois monitores no MSFS: uma janela extra, sem escolher a janela da esquerda", async () => {
+  const { srv, page } = await app();
+  await page.click("#presetZuka"); await page.selectOption("#layout", "2L"); await step2(page, "msfs");
+  assert.doesNotMatch(await page.innerHTML("#alerts"), /three monitors|três monitores/);
+  const out = await page.textContent("#out");
+  assert.match(out, /WindowCustom0\.CameraDegRotationAdd 0\.000000 -\d/); assert.doesNotMatch(out, /WindowCustom1/);
+  await page.waitForTimeout(400);
+  const req = srv.requests.filter((r) => r.path === "/api/preview").pop();
+  assert.equal(req.body.values.windows, "1"); assert.equal(req.body.values.side, "left");
+  assert.ok(req.body.values.rotLeft > 0); assert.equal(req.body.values.leftWindow, undefined);
+  assert.equal(await page.isHidden("#msfsWin"), true);
+});
+
+test("Detetar monitores: dois ecrãs separados com o principal à esquerda escolhem a janela à direita", async () => {
+  const { page } = await app();
+  await page.route("**/api/monitors", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true,
+    screens: [{ w: 2560, h: 1440, x: 0, y: 0, primary: true }, { w: 1920, h: 1080, x: 2560, y: 0, primary: false }], monitors: ["a", "b"].map((x) => ({ id: "m" + x, name: "AOC 27G4", w_mm: 598, h_mm: 336, present: true })) }) }));
+  await page.click("#presetClear"); await page.click("#detect"); await page.waitForTimeout(300);
+  assert.equal(await page.inputValue("#layout"), "2R");
+  assert.equal(await page.inputValue("#xC"), "2560"); assert.equal(await page.inputValue("#xR"), "1920");
+});
+
 test("Le Mans Ultimate: vistas ajustadas ao modelo do jogo e enviadas ao servidor", async () => {
   const { srv, page } = await app();
   await page.click("#presetZuka"); await step2(page, "lmu");

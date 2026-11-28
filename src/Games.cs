@@ -99,15 +99,24 @@ namespace OZPanorama
         {
             var path = Paths()[0]; var s = snaps[path];
             if (!s.Exists) throw new OzError("missing", "Não encontrei o UserCfg.opt do MSFS 2024. Abra o simulador uma vez e saia pelo menu.", path);
-            double left = Num(v, "rotLeft", 0, 180), right = Num(v, "rotRight", 0, 180);   // > 90 com "esconder atrás das molduras"
-            string leftWin = Str(v, "leftWindow");
-            if (leftWin != "0" && leftWin != "1") throw new OzError("input", "Indique qual das janelas extra está à esquerda.");
-            int lw = leftWin == "0" ? 0 : 1, rw = 1 - lw;
+            // Dois monitores (windows = "1"): só uma janela extra, à esquerda ou à direita do monitor principal.
+            bool one = v.ContainsKey("windows") && Str(v, "windows") == "1";
+            string side = one ? Str(v, "side") : null;
+            if (one && side != "left" && side != "right") throw new OzError("input", "Indique de que lado fica o segundo monitor.");
+            double left = one && side == "right" ? 0 : Num(v, "rotLeft", 0, 180), right = one && side == "left" ? 0 : Num(v, "rotRight", 0, 180);   // > 90 com "esconder atrás das molduras"
+            int lw = 0, rw = 1;
+            if (!one)
+            {
+                string leftWin = Str(v, "leftWindow");
+                if (leftWin != "0" && leftWin != "1") throw new OzError("input", "Indique qual das janelas extra está à esquerda.");
+                lw = leftWin == "0" ? 0 : 1; rw = 1 - lw;
+            }
+            int need = one ? 1 : 2;
             var text = TextFile.Decode(s.Bytes).Text;
 
             var p = new Plan { Game = Id, GameName = Name };
             // Estado das janelas, para a pessoa confirmar a esquerda/direita antes de aplicar.
-            for (int w = 0; w < 2; w++)
+            for (int w = 0; w < need; w++)
             {
                 var info = new Dictionary<string, object> { { "janela", w } };
                 foreach (var k in new[] { "Monitor", "WindowActive", "Windowed", "FullscreenBorderless" })
@@ -117,14 +126,19 @@ namespace OZPanorama
                 }
                 p.Info.Add(info);
                 if (info["Monitor"] == null)
-                    throw new OzError("msfs-windows", "O MSFS ainda não tem as duas janelas extra. Nas opções de multijanelas do simulador, crie 2 janelas extra, coloque cada uma no seu monitor em ecrã inteiro e saia pelo menu. Nada foi alterado.", "WindowCustom" + w + " em falta");
+                    throw new OzError("msfs-windows", one ? "O MSFS ainda não tem a janela extra. Nas opções de multijanelas do simulador, crie 1 janela extra, coloque-a no segundo monitor em ecrã inteiro e saia pelo menu. Nada foi alterado." : "O MSFS ainda não tem as duas janelas extra. Nas opções de multijanelas do simulador, crie 2 janelas extra, coloque cada uma no seu monitor em ecrã inteiro e saia pelo menu. Nada foi alterado.", "WindowCustom" + w + " em falta");
                 if ((string)info["WindowActive"] != "1") p.Warnings.Add("A janela extra " + (w + 1) + " não está ativa no MSFS (WindowActive diferente de 1). O OZPanorama não a ativa; ative-a no simulador.");
             }
-            if (Regex.IsMatch(text, @"(?m)^[ \t]*WindowCustom2\.")) p.Warnings.Add("O MSFS tem mais de duas janelas extra. O OZPanorama só ajusta as duas primeiras.");
+            if (one && Regex.IsMatch(text, @"(?m)^[ \t]*WindowCustom1\.Monitor[ \t]")) p.Warnings.Add("O MSFS tem mais de uma janela extra. Com dois monitores, o OZPanorama só ajusta a janela 1; desative a outra no simulador.");
+            else if (!one && Regex.IsMatch(text, @"(?m)^[ \t]*WindowCustom2\.")) p.Warnings.Add("O MSFS tem mais de duas janelas extra. O OZPanorama só ajusta as duas primeiras.");
 
             var fp = new FilePlan { Path = path, Label = "UserCfg.opt" };
-            fp.Rules.Add(Rotation(lw, (-left).ToString("0.000000", CultureInfo.InvariantCulture)));
-            fp.Rules.Add(Rotation(rw, right.ToString("0.000000", CultureInfo.InvariantCulture)));
+            if (one) fp.Rules.Add(Rotation(0, (side == "left" ? -left : right).ToString("0.000000", CultureInfo.InvariantCulture)));
+            else
+            {
+                fp.Rules.Add(Rotation(lw, (-left).ToString("0.000000", CultureInfo.InvariantCulture)));
+                fp.Rules.Add(Rotation(rw, right.ToString("0.000000", CultureInfo.InvariantCulture)));
+            }
             p.Files.Add(fp);
             if (OverridePath == null && Candidates().Count(File.Exists) > 1)
                 p.Warnings.Add("Encontrei o MSFS 2024 instalado no Steam e na Microsoft Store. Vou alterar o que foi usado por último (" + (path.Contains("Packages") ? "Microsoft Store" : "Steam") + "). Se joga na outra versão, abra-a uma vez e saia antes de aplicar.");

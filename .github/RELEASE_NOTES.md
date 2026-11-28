@@ -1,7 +1,8 @@
-**OZPanorama {VERSION}** - two monitors in ETS2/ATS and fixes from the technical audit.
+**OZPanorama {VERSION}** - two monitors in ETS2, ATS and MSFS 2024, and fixes from the technical audit.
 
 ### New
 - **Two monitors in Euro Truck Simulator 2 and American Truck Simulator** (experimental): choose which monitor is the main one. With the main on the right, the left monitor shows the left window; with the main on the left, the right monitor shows the right window. Uses the game's custom mode (`r_multimon_mode "4"`), the only one that accepts two monitors.
+- **Two monitors in MSFS 2024** (experimental): without Surround, with one extra window on the second monitor. The app writes only that window's rotation. "Detect monitors" recognises two separate screens and puts the main Windows monitor in the center.
 
 - **Game artwork**: each simulator now has its own picture in the list, in the app's black and yellow style with a color strip per game.
 

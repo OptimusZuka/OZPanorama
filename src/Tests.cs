@@ -95,6 +95,21 @@ namespace OZPanorama.Tests
                 Check(t.Contains("WindowCustom0.Monitor 1") && t.Contains("WindowCustom1.Monitor 3"), "A/MSFS: números dos monitores não são alterados");
             }
 
+            // ---------- Dois monitores: uma janela extra ----------
+            {
+                var f = Path.Combine(Fresh("one"), "UserCfg.opt"); File.WriteAllText(f, MsfsSample("\r\n")); Msfs(f);
+                var pv = Ops.MakePreview("msfs", new Dictionary<string, object> { { "windows", "1" }, { "side", "right" }, { "rotRight", 30.0 } });
+                Check(pv.Plan.Warnings.Any(w => w.Contains("mais de uma janela extra")), "A/MSFS 2 monitores: avisa que há outra janela extra");
+                Go(pv);
+                var t = File.ReadAllText(f);
+                Check(t.Contains("WindowCustom0.CameraDegRotationAdd 0.000000 30.000000 0.500000") && t.Contains("WindowCustom1.CameraDegRotationAdd 0.000000 10.000000 0.000000"), "A/MSFS 2 monitores: só a janela 1 muda, para a direita");
+                File.WriteAllText(f, MsfsSample("\r\n"));
+                Go("msfs", new Dictionary<string, object> { { "windows", "1" }, { "side", "left" }, { "rotLeft", 30.0 } });
+                Check(File.ReadAllText(f).Contains("WindowCustom0.CameraDegRotationAdd 0.000000 -30.000000 0.500000"), "A/MSFS 2 monitores: à esquerda a rotação é negativa");
+                var bad = false; try { Ops.MakePreview("msfs", new Dictionary<string, object> { { "windows", "1" }, { "side", "x" }, { "rotLeft", 30.0 } }); } catch (OzError) { bad = true; }
+                Check(bad, "A/MSFS 2 monitores: lado inválido recusado");
+            }
+
             // ---------- Recusas sem escrita ----------
             {
                 var d = Fresh("recusas");

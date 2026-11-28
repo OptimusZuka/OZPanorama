@@ -71,3 +71,21 @@ test("ETS2 dois monitores: geometria exata e interface no principal", () => {
     assert.ok(Math.abs(main.heading) < 1e-9, "a vista principal olha em frente");
   }
 });
+
+// MSFS 2024 com dois monitores: uma só janela extra, com a rotação do lado que existe; igual à do mesmo lado com três.
+test("MSFS dois monitores: uma janela extra com a rotação do seu lado", () => {
+  const C = { name: "center", res_px: [1920, 1080], width_mm: 597.7, height_mm: 336.2 };
+  const S = (n) => ({ name: n, res_px: [1920, 1080], width_mm: 597.7, height_mm: 336.2, hinge_deg: 50, gap_mm: 15 });
+  const three = E.msfs2024Config(E.buildRow(C, [S("left")], [S("right")], 700), { hfov: 60 });
+  for (const [l, r, side] of [[[S("left")], [], "left"], [[], [S("right")], "right"]]) {
+    const cfg = E.msfs2024Config(E.buildRow(C, l, r, 700), { hfov: 60 });
+    assert.deepEqual(cfg.sides, [side]);
+    assert.equal(cfg.lines.filter((x) => /CameraDegRotationAdd/.test(x)).length, 1);
+    assert.ok(cfg.lines.every((x) => !/WindowCustom1/.test(x)), "só a janela extra 1");
+    const rot = side === "left" ? cfg.rl : cfg.rr, ref = side === "left" ? three.rl : three.rr;
+    assert.ok(Math.abs(rot - ref) < 1e-9);
+    const line = cfg.lines.find((x) => /CameraDegRotationAdd/.test(x));
+    assert.ok(side === "left" ? / -\d/.test(line) : / \d+\.\d+ 0\.000000$/.test(line), line);
+    assert.ok(Number.isFinite(cfg.max));
+  }
+});

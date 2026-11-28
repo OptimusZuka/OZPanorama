@@ -460,7 +460,9 @@ export function msfs2024Config(rig, { hideBezel = true, hfov = null, swap = fals
   if (!(hfov > 0 && hfov < 180)) throw new Error("FOV horizontal tem de estar entre 0° e 180°.");
   const m = { ...mon };
   if (swap) [m.left, m.right] = [m.right, m.left];
-  const rl = msfs2024Value(rig, "left", hfov, hideBezel), rr = msfs2024Value(rig, "right", hfov, hideBezel);
+  // Com dois monitores só existe um dos lados: uma janela extra só (WindowCustom0).
+  const has = (s) => rig.monitors.some((x) => x.name === s);
+  const rl = has("left") ? msfs2024Value(rig, "left", hfov, hideBezel) : null, rr = has("right") ? msfs2024Value(rig, "right", hfov, hideBezel) : null;
   const errors = msfs2024Errors(rig, hfov, hideBezel), max = Math.max(...Object.values(errors));
   const vfov = deg(2 * Math.atan(Math.tan(rad(hfov / 2)) / aspect));
   const outOfLimit = vfov < MSFS_VFOV_LIMIT[0] - 1e-6 || vfov > MSFS_VFOV_LIMIT[1] + 1e-6;
@@ -471,9 +473,10 @@ export function msfs2024Config(rig, { hideBezel = true, hfov = null, swap = fals
     if (mf < max - 0.01) unconstrained = { hfov: hf, vfov: deg(2 * Math.atan(Math.tan(rad(hf / 2)) / aspect)), max: mf };
   }
   const lines = [`Monitor ${m.center}`, "Windowed 0", "FullscreenBorderless 1"];
-  [["left", -rl], ["right", rr]].forEach(([s, r], i) => lines.push(
+  [["left", rl == null ? null : -rl], ["right", rr]].filter(([, r]) => r != null).forEach(([s, r], i) => lines.push(
     `WindowCustom${i}.Monitor ${m[s]}`, `WindowCustom${i}.Windowed 0`, `WindowCustom${i}.FullscreenBorderless 1`,
     `WindowCustom${i}.WindowActive 1`, `WindowCustom${i}.CameraDegRotationAdd 0.000000 ${r.toFixed(6)} 0.000000`));
   return { hfov, auto, errors, max, vfov, outOfLimit, unconstrained, rl, rr, mon: m,
-    gapL: msfsBezelGap(rig, "left"), gapR: msfsBezelGap(rig, "right"), lines };
+    sides: [has("left") && "left", has("right") && "right"].filter(Boolean),
+    gapL: rl == null ? null : msfsBezelGap(rig, "left"), gapR: rr == null ? null : msfsBezelGap(rig, "right"), lines };
 }

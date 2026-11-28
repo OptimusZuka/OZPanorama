@@ -424,7 +424,7 @@ function readInputs() {
   };
   const lay = layoutOf(), useL = lay !== "2R", useR = lay !== "2L";
   for (const [k, on] of [["L", useL], ["R", useR]]) for (const id of ["w", "h", "x", "y", "ang"]) { const el = $(id === "ang" ? "ang" + k : id + k); if (el) { el.disabled = !on; el.style.opacity = on ? "" : "0.35"; } }
-  $("layoutNote").textContent = lay === "3" ? "" : T("With two monitors, the main monitor uses the Center column and the other monitor uses its own side column. Only Euro Truck Simulator 2 and American Truck Simulator support two monitors.");
+  $("layoutNote").textContent = lay === "3" ? "" : T("With two monitors, the main monitor uses the Center column and the other monitor uses its own side column. Only Euro Truck Simulator 2, American Truck Simulator and MSFS 2024 support two monitors.");
   const center = spec("center", "C"), L = useL ? spec("left", "L") : null, R = useR ? spec("right", "R") : null;
   document.querySelectorAll(".curvC").forEach((e) => (e.style.display = $("curvC").checked ? "" : "none"));
   document.querySelectorAll(".curvS").forEach((e) => (e.style.display = $("curvS").checked ? "" : "none"));
@@ -441,7 +441,8 @@ function readInputs() {
 }
 // "3" (três monitores), "2L" (principal à direita, janela esquerda no monitor da esquerda) ou "2R" (o contrário).
 // Com dois monitores só o ETS2 e o ATS servem: se o jogo escolhido for outro, passa para o ETS2 em vez de mostrar um erro.
-function twoMonitorGame() { if (layoutOf() !== "3" && game !== "ets2" && game !== "ats") { game = "ets2"; msfsLeft = null; buildGames(); render(); schedulePreview(); } }
+const TWO_OK = ["ets2", "ats", "msfs"];
+function twoMonitorGame() { if (layoutOf() !== "3" && !TWO_OK.includes(game)) { game = "ets2"; msfsLeft = null; buildGames(); render(); schedulePreview(); } }
 function layoutOf() { const v = $("layout").value; return v === "2L" || v === "2R" ? v : "3"; }
 const sidesOf = (i) => [i.left, i.right].filter(Boolean);
 const arcTooLong = (arc, R) => !(R > 0) || arc / R >= Math.PI;
@@ -481,7 +482,7 @@ function validate(i) {
       Math.round(m.curve_radius_mm), f1(arc), f1(chord), f1(sag), e.toFixed(2).replace(".", lang === "en" ? "." : ",")));
     if (m === i.center) notes.push(F("Distance to a curved center screen: measure to the line between the screen ends. If you measured to the middle of the screen, subtract {0} mm.", Math.round(sag)));
   }
-  if (i.layout !== "3" && game && game !== "ets2" && game !== "ats") errs.push(T("This simulator needs three monitors. With two monitors, only Euro Truck Simulator 2 and American Truck Simulator are supported."));
+  if (i.layout !== "3" && game && !TWO_OK.includes(game)) errs.push(T("This simulator needs three monitors. With two monitors, only Euro Truck Simulator 2, American Truck Simulator and MSFS 2024 are supported."));
   if (i.layout !== "3") return { errs, warns, notes };
   if (game === "iracing" && Math.abs(i.left.hinge_deg - i.right.hinge_deg) > 0.5) warns.push(F("iRacing uses one angle for both sides: it will use the average, {0}°. Set both sides to the same angle for an exact result.", f1((i.left.hinge_deg + i.right.hinge_deg) / 2)));
   if (!!i.center.curve_radius_mm !== !!i.left.curve_radius_mm && game === "iracing") warns.push(T("Curved and flat mixed: iRacing only accepts three equal screens. It uses \"3 Flat Screens\", with the curved one treated as flat by its chord."));
@@ -652,6 +653,7 @@ function renderInner() {
       $("outExtra").innerHTML = optHtml(msfsOpt.hideBezel); bindMsfs(); return;
     }
     const cfg = E.msfs2024Config(rig, { hideBezel: msfsOpt.hideBezel, hfov: userH });
+    const two = cfg.sides.length === 1, rot = cfg.rl ?? cfg.rr;
     const [vLo, vHi] = E.MSFS_VFOV_LIMIT, rad = (cfg.vfov * Math.PI / 180).toFixed(3);
     const extraAl = [];
     if (cfg.outOfLimit) extraAl.push(F("MSFS: vertical FOV of {0}° outside {1}°–{2}°, the zoom range measured in MSFS 2024 (cockpit camera). The simulator may not reach this zoom.", f1(cfg.vfov), vLo, vHi));
@@ -659,11 +661,11 @@ function renderInner() {
     $("alerts2").innerHTML = extraAl.map((x) => `<div class="alert">${esc(x)}</div>`).join("");
     title = "UserCfg.opt";
     text = cfg.lines.join("\n");
-    note = F("Three borderless full-screen windows, one per monitor. FOV used: {0}° horizontal = {1}° vertical ({2} rad in the developer mode \"Fov\").", f1(cfg.hfov), f1(cfg.vfov), rad);
-    values = { rotLeft: +cfg.rl.toFixed(6), rotRight: +cfg.rr.toFixed(6) };
+    note = F(two ? "Two borderless full-screen windows, one per monitor. FOV used: {0}° horizontal = {1}° vertical ({2} rad in the developer mode \"Fov\")." : "Three borderless full-screen windows, one per monitor. FOV used: {0}° horizontal = {1}° vertical ({2} rad in the developer mode \"Fov\").", f1(cfg.hfov), f1(cfg.vfov), rad);
+    values = two ? { windows: "1", side: cfg.sides[0], [cfg.sides[0] === "left" ? "rotLeft" : "rotRight"]: +rot.toFixed(6) } : { rotLeft: +cfg.rl.toFixed(6), rotRight: +cfg.rr.toFixed(6) };
     err1 = cfg.max;
     extra = optHtml(msfsOpt.hideBezel) + `<div class="alert info">${esc(F("Recommended zoom: \"Fov\" {0} rad in the simulator's developer mode (it is not written; another zoom also lines up, only the size changes).", rad))}</div>`;
-    steps = [T("Close the simulator (it rewrites UserCfg.opt when it exits). Surround must be off for MSFS."), F("Writes only the rotation of the two extra windows that already exist (±{0}).", cfg.rr.toFixed(2)), T("Keeps your monitor numbers and everything else in the file as it is.")];
+    steps = [T("Close the simulator (it rewrites UserCfg.opt when it exits). Surround must be off for MSFS."), two ? F(cfg.sides[0] === "left" ? "Writes only the rotation of the extra window that already exists ({0}), on the left monitor." : "Writes only the rotation of the extra window that already exists ({0}), on the right monitor.", (cfg.rl != null ? -rot : rot).toFixed(2)) : F("Writes only the rotation of the two extra windows that already exist (±{0}).", cfg.rr.toFixed(2)), T("Keeps your monitor numbers and everything else in the file as it is.")];
     limit = T("MSFS uses the same FOV in every window and does not off-centre the image: the far ends of the side screens keep a small perspective error.");
   }
   const g = GAMES.find((x) => x.k === game);
@@ -826,11 +828,12 @@ async function loadPreview() {
   pv = null;
   if (!appInfo || !current || current.game !== game || !canApplyHere()) { renderPreview(); return; }
   const values = { ...current.values };
-  if (game === "msfs") values.leftWindow = msfsLeft ?? "0";
+  const oneWin = game === "msfs" && values.windows === "1";
+  if (game === "msfs" && !oneWin) values.leftWindow = msfsLeft ?? "0";
   try {
     const r = await API("/api/preview", { game, values });
     if (seq !== pvSeq) return;
-    pv = { ...r, sentFor: current, leftChosen: game !== "msfs" || msfsLeft != null };
+    pv = { ...r, sentFor: current, leftChosen: game !== "msfs" || oneWin || msfsLeft != null };
   } catch (e) { if (seq !== pvSeq) return; pv = { error: errText(e) }; }
   renderPreview();
 }
@@ -848,7 +851,7 @@ function renderPreview() {
   if (!current) al = `<div class="alert err">${esc(T("Fix the measurements in step 1 first."))}</div>`;
   else if (pv && pv.error) al = `<div class="alert err">${esc(pv.error)}</div>`;
   else if (pv) {
-    if (game === "msfs" && pv.info && pv.info.length === 2) {
+    if (game === "msfs" && pv.info && pv.info.length === 2 && current.values.windows !== "1") {
       const btn = (w) => `<button type="button" data-w="${w}" aria-pressed="${String(msfsLeft === String(w))}">${esc(F("Window {0} · monitor {1}", w + 1, pv.info[w].Monitor ?? "?"))}${msfsLeft === String(w) ? ` <b class="mid">(${esc(T("left"))})</b>` : ""}</button>`;
       $("msfsWin").innerHTML = `<div><b>${esc(T("Which extra window is on the left?"))}</b><p class="note">${esc(T("Read from your UserCfg.opt. OZPanorama does not change the monitor numbers."))}</p></div><div class="choice">${btn(0)}${btn(1)}</div>`;
       $("msfsWin").hidden = false;
@@ -1040,6 +1043,13 @@ $("detect").addEventListener("click", async () => {
   } else if (scr.length) {
     const s3 = [...scr].sort((a, b) => a.x - b.x);
     resNote = T("Separate screens (left → right):") + " " + s3.map((s) => `${s.w}×${s.h}`).join(", ");
+    // Dois ecrãs separados (sem Surround, como no MSFS): o principal do Windows é o do centro, o outro fica do seu lado.
+    if (s3.length === 2 && nMon === 2) {
+      const pi = s3.findIndex((s) => s.primary), main = s3[pi >= 0 ? pi : 0], other = s3[pi === 1 ? 0 : 1];
+      $("layout").value = main === s3[0] ? "2R" : "2L"; twoMonitorGame();
+      const k = $("layout").value === "2L" ? "L" : "R";
+      $("xC").value = main.w; $("yC").value = main.h; $("x" + k).value = other.w; $("y" + k).value = other.h;
+    }
     if (s3.length >= 3) { const big = s3.filter((s) => s.w === s3[Math.floor(s3.length / 2)].w && s.h === s3[Math.floor(s3.length / 2)].h); if (big.length >= 3) for (const k of ["L", "C", "R"]) { $("x" + k).value = big[0].w; $("y" + k).value = big[0].h; } }
   }
   // Lugares automáticos: o monitor curvo das fichas vai ao centro, os outros das fichas aos lados; o resto escolhe-se à mão.
